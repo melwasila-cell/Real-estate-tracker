@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>إدارة الشغل</title>
+<style>
+:root{--pri:#0f766e;--pri-d:#0b5a54;--bg:#f3f5f7;--card:#fff;--tx:#1f2937;--mut:#6b7280;--bd:#e5e7eb;--red:#dc2626;--grn:#16a34a;--amb:#d97706}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+input[type=date]{text-align:right}
+body{margin:0;font-variant-numeric:lining-nums;font-family:"Segoe UI",Tahoma,"Noto Naskh Arabic","Noto Sans Arabic",Arial,sans-serif;background:var(--bg);color:var(--tx);font-size:17px;padding-bottom:90px}
+header{background:var(--pri);color:#fff;padding:14px 16px 16px;position:sticky;top:0;z-index:5}
+header h1{margin:0 0 10px;font-size:20px}
+.sum{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sum div{background:rgba(255,255,255,.15);border-radius:12px;padding:8px 10px}
+.sum div:last-child:nth-child(odd){grid-column:span 2}
+.sum small{display:block;font-size:12px;opacity:.9}
+.sum b{font-size:17px}
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--bd)}
+.tabs button{flex:1;padding:15px 6px;font:inherit;font-weight:700;border:0;background:none;color:var(--mut);border-bottom:4px solid transparent;min-height:54px}
+.tabs button.on{color:var(--pri);border-color:var(--pri)}
+main{padding:14px;max-width:720px;margin:auto}
+.card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card h3{margin:0 0 4px;font-size:18px}
+.sub{color:var(--mut);font-size:14px;margin-bottom:6px}
+.row{display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:15px}
+.row span:first-child{color:var(--mut)}
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:13px;font-weight:700;background:#e0f2f1;color:var(--pri-d)}
+.badge.red{background:#fee2e2;color:var(--red)}
+.badge.grn{background:#dcfce7;color:var(--grn)}
+.badge.amb{background:#fef3c7;color:var(--amb)}
+.bar{height:10px;background:var(--bd);border-radius:99px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--pri)}
+.bar i.over{background:var(--red)}
+.btn{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 16px;min-height:48px;background:var(--pri);color:#fff}
+.btn.sec{background:#e5e7eb;color:var(--tx)}
+.btn.dng{background:#fee2e2;color:var(--red)}
+.btn.sm{min-height:44px;padding:8px 14px;font-size:15px}
+.acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.fab{position:fixed;bottom:16px;left:16px;right:16px;max-width:688px;margin:auto;min-height:56px;font-size:19px;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:4}
+.empty{text-align:center;padding:36px 16px;color:var(--mut)}
+.empty .ic{font-size:54px}
+.empty p{font-size:18px}
+.bk{border-top:1px solid var(--bd);padding:10px 0}
+.bk .t{display:flex;justify-content:space-between;font-weight:700}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.modal.show{display:flex}
+.sheet{background:#fff;width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px}
+.sheet h2{margin:0 0 12px;font-size:20px}
+label{display:block;font-weight:700;font-size:15px;margin:12px 0 4px}
+input,select,textarea{width:100%;font:inherit;padding:12px;border:1.5px solid var(--bd);border-radius:12px;background:#fff;min-height:50px;color:var(--tx)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pri)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.foot{display:flex;gap:10px;margin-top:16px;position:sticky;bottom:0;background:#fff;padding:8px 0}
+.foot .btn{flex:1}
+.bkp{display:flex;gap:8px;margin-top:20px}
+.bkp .btn{flex:1}
+.note{color:var(--mut);font-size:13px;text-align:center;margin-top:8px}
+.sec-h{display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px;font-size:18px;font-weight:800}
+.tot{background:#ecfdf5;border-radius:12px;padding:8px 12px;margin:8px 0}
+.tot .row{font-size:16px}
+.tot .big{border-top:2px solid var(--pri);margin-top:4px;padding-top:8px;font-size:19px}
+details.it{background:#fff;border-radius:14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+details.it summary{list-style:none;display:flex;justify-content:space-between;gap:8px;padding:14px;min-height:54px;font-weight:700;cursor:pointer;align-items:center}
+details.it summary::-webkit-details-marker{display:none}
+details.it summary .n{background:var(--pri);color:#fff;border-radius:99px;min-width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;margin-left:8px}
+details.it .in{padding:0 14px 14px}
+.en{display:flex;justify-content:space-between;gap:8px;align-items:center;border-top:1px solid var(--bd);padding:8px 0}
+.en .d{flex:1}.en .d small{display:block;color:var(--mut);font-size:12px}
+.en .a{font-weight:700;white-space:nowrap}
+.ib{border:0;background:#f3f4f6;border-radius:10px;min-width:44px;min-height:44px;font-size:17px}
+.err{color:var(--red);font-size:14px;margin-top:6px;min-height:18px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏗️ إدارة الشغل</h1>
+  <div class="sum" id="sum"></div>
+</header>
+<div class="tabs">
+  <button id="tabP" class="on" onclick="setTab('P')">مشاريع التشطيب</button>
+  <button id="tabA" onclick="setTab('A')">الشقق المفروشة</button>
+</div>
+<main id="main"></main>
+<button class="btn fab" id="fab"></button>
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+
+<script>
+const KEY='realEstateAppV1';
+const AR='٠١٢٣٤٥٦٧٨٩',FA='۰۱۲۳۴۵۶۷۸۹';
+const en=s=>String(s==null?'':s).replace(/[٠-٩]/g,d=>AR.indexOf(d)).replace(/[۰-۹]/g,d=>FA.indexOf(d)).replace(/[٫,]/g,'.').replace(/[٬،\s]/g,'');
+const num=v=>{const n=parseFloat(en(v));return isNaN(n)?0:n};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const STAGES=['عظم','كهرباء وسباكة','محارة','سيراميك','نجارة ودهانات','تسليم'];
+let S, tab=localStorage.getItem('reTab')==='A'?'A':'P';
+const DEFAULT_ITEMS=['تكسير ونقل مخلفات','المبانى','اعمال محاره','اعمال سراميك','دهانات','الخشب والنجاره','ورق حائط','اعمال الكهرباء','الاعمال الصحيه 1','الاعمال الصحيه 2','جبس بورد','الرخام','مواسير تكييف نحاس','سيكوريت زجاج','سمارت هوم','المونتال'];
+const defItems=()=>DEFAULT_ITEMS.map(n=>({id:uid(),name:n,entries:[]}));
+function normProj(p){ // migrates old projects (single "spent" number) to the new ledger model
+  if(!Array.isArray(p.items)){p.items=defItems();if(p.legacySpent==null)p.legacySpent=num(p.spent)}
+  delete p.spent;p.legacySpent=num(p.legacySpent);
+  p.received=Array.isArray(p.received)?p.received:[];p.petty=Array.isArray(p.petty)?p.petty:[];
+  p.items.forEach(i=>{i.id=i.id||uid();i.entries=Array.isArray(i.entries)?i.entries:[]});
+  [...p.received,...p.petty,...p.items.flatMap(i=>i.entries)].forEach(e=>{e.id=e.id||uid()});
+  return p}
+function normalize(d){d.projects.forEach(normProj);d.apartments.forEach(a=>{a.bookings=Array.isArray(a.bookings)?a.bookings:[]});return d}
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&Array.isArray(d.projects)&&Array.isArray(d.apartments)){const n=normalize(d);return n}}catch(e){}return{projects:[],apartments:[]}}
+function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+S=load();
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>(Math.round(n*100)/100).toLocaleString('en-US',{maximumFractionDigits:2})+' ج.م';
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+const today=()=>iso(new Date());
+function fdate(s){if(!s)return '—';const [y,m,d]=s.split('-');return d+'/'+m+'/'+y}
+function dayNum(s){const [y,m,d]=s.split('-').map(Number);return Math.round(Date.UTC(y,m-1,d)/864e5)}
+function monthRange(){const n=new Date();const a=new Date(n.getFullYear(),n.getMonth(),1),b=new Date(n.getFullYear(),n.getMonth()+1,1);return[dayNum(iso(a)),dayNum(iso(b))]} // [start, endExclusive)
+const inThisMonth=s=>{if(!s)return false;const[a,b]=monthRange(),d=dayNum(s);return d>=a&&d<b};
+
+/* ---- calculations ---- */
+const sumAmt=a=>a.reduce((t,e)=>t+num(e.amount),0);
+const itemTotal=i=>sumAmt(i.entries);
+const recTotal=p=>sumAmt(p.received);
+const expTotal=p=>p.items.reduce((t,i)=>t+itemTotal(i),0)+num(p.legacySpent);
+const pettyTotal=p=>sumAmt(p.petty);
+const outTotal=p=>expTotal(p)+pettyTotal(p);
+const balance=p=>recTotal(p)-outTotal(p);
+function overdue(p){return !!p.due&&p.stage!=='تسليم'&&p.due<today()}
+function occupancy(a){ // nights booked in the current month / days in month
+  const[ms,me]=monthRange(),days=me-ms,set=new Set();
+  (a.bookings||[]).forEach(b=>{if(!b.in||!b.out)return;const s=Math.max(dayNum(b.in),ms),e=Math.min(dayNum(b.out),me);for(let d=s;d<e;d++)set.add(d)});
+  return{nights:set.size,days,pct:Math.round(set.size/days*100)};
+}
+function income(a){return(a.bookings||[]).filter(b=>inThisMonth(b.in)).reduce((t,b)=>t+num(b.paid),0)}
+function expected(a){return(a.bookings||[]).filter(b=>inThisMonth(b.in)).reduce((t,b)=>t+num(b.paid)+num(b.due),0)}
+function bookingsMonth(a){return(a.bookings||[]).filter(b=>inThisMonth(b.in)).length}
+
+/* ---- render ---- */
+function render(){
+  const P=S.projects,A=S.apartments;
+  const tb=P.reduce((t,p)=>t+num(p.budget),0),ts=P.reduce((t,p)=>t+outTotal(p),0),tr=P.reduce((t,p)=>t+recTotal(p),0);
+  const bm=A.reduce((t,a)=>t+bookingsMonth(a),0),im=A.reduce((t,a)=>t+income(a),0);
+  $('sum').innerHTML=`<div><small>عدد المشاريع</small><b>${P.length}</b></div>
+   <div><small>حجوزات الشهر ده</small><b>${bm}</b></div>
+   <div><small>الميزانية / المصروف</small><b>${money(tb)} / ${money(ts)}</b></div>
+   <div><small>إجمالي الوارد / الرصيد</small><b>${money(tr)} / ${money(tr-ts)}</b></div>
+   <div><small>إيراد الشهر ده</small><b>${money(im)}</b></div>`;
+  $('tabP').classList.toggle('on',tab==='P');$('tabA').classList.toggle('on',tab==='A');
+  $('fab').textContent=tab==='P'?'＋ إضافة مشروع':'＋ إضافة شقة';
+  $('fab').onclick=()=>tab==='P'?projForm():aptForm();
+  const cp=curProj();$('fab').style.display=cp?'none':'';
+  $('main').innerHTML=(cp?renderDetail(cp):tab==='P'?renderP():renderA())+`
+   <div class="bkp"><button class="btn sec sm" onclick="exportData()">⬇️ تصدير نسخة احتياطية</button>
+   <button class="btn sec sm" onclick="$('imp').click()">⬆️ استيراد نسخة</button></div>
+   <input type="file" id="imp" accept="application/json,.json" hidden onchange="importData(this)">
+   <div class="note">البيانات محفوظة على موبايلك فقط. صدّر نسخة احتياطية من وقت للتاني.</div>`;
+}
+function renderP(){
+  if(!S.projects.length)return`<div class="empty"><div class="ic">🏠</div><p>لسه مفيش مشاريع تشطيب.<br>اضغط «إضافة مشروع» عشان تسجّل أول مشروع.</p></div>`;
+  return S.projects.map(p=>{
+    const out=outTotal(p),bal=balance(p),pct=num(p.budget)>0?Math.min(100,out/num(p.budget)*100):0,od=overdue(p);
+    return`<div class="card"><h3 onclick="openProj('${p.id}')">${esc(p.name)}</h3>
+    <div class="sub">${esc(p.client?'العميل: '+p.client:'')}</div>
+    <span class="badge ${p.stage==='تسليم'?'grn':''}">${esc(p.stage)}</span>
+    ${od?'<span class="badge red">⚠️ متأخر</span>':''}
+    <div class="bar"><i class="${num(p.budget)>0&&out>num(p.budget)?'over':''}" style="width:${pct}%"></i></div>
+    <div class="row"><span>الميزانية</span><b>${money(num(p.budget))}</b></div>
+    <div class="row"><span>إجمالي الوارد</span><b>${money(recTotal(p))}</b></div>
+    <div class="row"><span>المصاريف + النثريات</span><b>${money(out)}</b></div>
+    <div class="row"><span>الرصيد المتبقي</span><b style="color:${bal<0?'var(--red)':'var(--grn)'}">${money(bal)}</b></div>
+    <div class="row"><span>موعد التسليم</span><b style="color:${od?'var(--red)':'inherit'}">${fdate(p.due)}</b></div>
+    <div class="acts"><button class="btn sm" onclick="openProj('${p.id}')">فتح التفاصيل</button>
+    <button class="btn sec sm" onclick="projForm('${p.id}')">تعديل</button>
+    <button class="btn dng sm" onclick="delProj('${p.id}')">حذف</button></div></div>`}).join('');
+}
+function entryRow(kind,p,iid,e){
+  const a=`'${kind}','${p.id}','${iid||''}','${e.id}'`;
+  return`<div class="en"><div class="d">${esc(e.desc||e.note||'—')}<small>${e.date?fdate(e.date):''}</small></div><div class="a">${money(num(e.amount))}</div>
+  <button class="ib" aria-label="تعديل" onclick="entryForm(${a})">✏️</button><button class="ib" aria-label="حذف" onclick="delEntry(${a})">🗑️</button></div>`;
+}
+function renderDetail(p){
+  const rec=recTotal(p),exp=expTotal(p),pt=pettyTotal(p),bal=balance(p),od=overdue(p),out=exp+pt;
+  const bRem=num(p.budget)-out;
+  return`<button class="btn sec sm" onclick="goList()">→ كل المشاريع</button>
+  <div class="card" style="margin-top:12px"><h3>${esc(p.name)}</h3>
+  <div class="sub">${esc(p.client?'العميل: '+p.client:'')}</div>
+  <span class="badge ${p.stage==='تسليم'?'grn':''}">${esc(p.stage)}</span>${od?' <span class="badge red">⚠️ متأخر</span>':''}
+  <div class="tot">
+   <div class="row"><span>إجمالي المبالغ الوارد</span><b>${money(rec)}</b></div>
+   <div class="row"><span>إجمالي المصاريف</span><b>${money(exp)}</b></div>
+   <div class="row"><span>إجمالي النثريات والانتقالات</span><b>${money(pt)}</b></div>
+   <div class="row big"><span style="color:var(--tx);font-weight:800">إجمالي الرصيد المتبقي</span><b style="color:${bal<0?'var(--red)':'var(--grn)'}">${money(bal)}</b></div>
+  </div>
+  ${num(p.budget)>0?`<div class="row"><span>الميزانية</span><b>${money(num(p.budget))}</b></div><div class="row"><span>المتبقي من الميزانية</span><b style="color:${bRem<0?'var(--red)':'inherit'}">${money(bRem)}</b></div>`:''}
+  ${p.contractor?`<div class="row"><span>المقاول</span><b>${esc(p.contractor)}</b></div>`:''}
+  ${p.start?`<div class="row"><span>بداية العمل</span><b>${fdate(p.start)}</b></div>`:''}
+  <div class="row"><span>موعد التسليم</span><b style="color:${od?'var(--red)':'inherit'}">${fdate(p.due)}</b></div>
+  ${p.notes?`<div class="sub" style="margin-top:6px;white-space:pre-wrap">📝 ${esc(p.notes)}</div>`:''}
+  <div class="acts"><button class="btn sm" onclick="projForm('${p.id}')">تعديل بيانات المشروع</button><button class="btn dng sm" onclick="delProj('${p.id}')">حذف</button></div></div>
+
+  <div class="sec-h"><span>💰 المبالغ الوارد</span><span>${money(rec)}</span></div>
+  <div class="card">${p.received.length?p.received.slice().sort((x,y)=>(x.date||'').localeCompare(y.date||'')).map(e=>entryRow('rec',p,'',e)).join(''):'<div class="sub">لسه مفيش مبالغ وارد.</div>'}
+  <div class="acts"><button class="btn sm" onclick="entryForm('rec','${p.id}','','')">＋ إضافة مبلغ وارد</button></div></div>
+
+  <div class="sec-h"><span>🧱 بنود الأعمال</span><span>${money(exp)}</span></div>
+  ${p.legacySpent>0?`<div class="card"><div class="row"><span>مصروف سابق (من النسخة القديمة)</span><b>${money(p.legacySpent)}</b></div><div class="sub">تقدر تعدّله من «تعديل بيانات المشروع».</div></div>`:''}
+  ${p.items.map((it,i)=>`<details class="it" ${openItems.has(it.id)?'open':''} ontoggle="toggleItem('${it.id}',this.open)">
+    <summary><span><span class="n">${i+1}</span>${esc(it.name)}</span><span>${money(itemTotal(it))}</span></summary>
+    <div class="in">${it.entries.length?it.entries.map(e=>entryRow('item',p,it.id,e)).join(''):'<div class="sub">مفيش مصروفات على البند ده.</div>'}
+    <div class="acts"><button class="btn sm" onclick="entryForm('item','${p.id}','${it.id}','')">＋ مصروف</button>
+    <button class="btn sec sm" onclick="itemForm('${p.id}','${it.id}')">اسم البند</button>
+    <button class="btn dng sm" onclick="delItem('${p.id}','${it.id}')">حذف البند</button></div></div></details>`).join('')}
+  <button class="btn sec" style="width:100%" onclick="itemForm('${p.id}','')">＋ إضافة بند أعمال</button>
+
+  <div class="sec-h"><span>🚗 النثريات والانتقالات</span><span>${money(pt)}</span></div>
+  <div class="card">${p.petty.length?p.petty.map(e=>entryRow('petty',p,'',e)).join(''):'<div class="sub">لسه مفيش نثريات.</div>'}
+  <div class="acts"><button class="btn sm" onclick="entryForm('petty','${p.id}','','')">＋ إضافة نثرية</button></div></div>`;
+}
+function toggleItem(id,o){o?openItems.add(id):openItems.delete(id)}
+function renderA(){
+  if(!S.apartments.length)return`<div class="empty"><div class="ic">🛋️</div><p>لسه مفيش شقق مفروشة.<br>اضغط «إضافة شقة» عشان تسجّل أول شقة.</p></div>`;
+  return S.apartments.map(a=>{
+    const o=occupancy(a),inc=income(a),net=inc-num(a.expenses);
+    const bks=(a.bookings||[]).slice().sort((x,y)=>(y.in||'').localeCompare(x.in||''));
+    return`<div class="card"><h3>${esc(a.name)}</h3>
+    <div class="sub">${money(num(a.price))} / ${a.priceType==='month'?'شهر':'ليلة'}</div>
+    <div class="row"><span>الإشغال الشهر ده</span><b>${o.pct}% (${o.nights} من ${o.days} يوم)</b></div>
+    <div class="bar"><i style="width:${o.pct}%"></i></div>
+    <div class="row"><span>الإيراد المحصّل الشهر ده</span><b>${money(inc)}</b></div>
+    <div class="row"><span>مصاريف شهرية</span><b>${money(num(a.expenses))}</b></div>
+    <div class="row"><span>صافي الربح</span><b style="color:${net<0?'var(--red)':'var(--grn)'}">${money(net)}</b></div>
+    <div class="row"><span>لسه هيتحصّل (حجوزات الشهر)</span><b>${money(expected(a)-inc)}</b></div>
+    <div style="margin-top:10px;font-weight:700">الحجوزات (${bks.length})</div>
+    ${bks.length?bks.map(b=>`<div class="bk"><div class="t"><span>${esc(b.guest)}</span><span>${fdate(b.in)} ← ${fdate(b.out)}</span></div>
+      <div class="row"><span>مدفوع: ${money(num(b.paid))}</span><span style="color:${num(b.due)>0?'var(--red)':'inherit'}">متبقي: ${money(num(b.due))}</span></div>
+      <div class="acts" style="margin-top:2px"><button class="btn sec sm" onclick="bkForm('${a.id}','${b.id}')">تعديل</button><button class="btn dng sm" onclick="delBk('${a.id}','${b.id}')">حذف</button></div></div>`).join(''):'<div class="sub">مفيش حجوزات لسه.</div>'}
+    <div class="acts"><button class="btn sm" onclick="bkForm('${a.id}')">＋ حجز جديد</button>
+    <button class="btn sec sm" onclick="aptForm('${a.id}')">تعديل الشقة</button>
+    <button class="btn dng sm" onclick="delApt('${a.id}')">حذف الشقة</button></div></div>`}).join('');
+}
+function setTab(t){tab=t;localStorage.setItem('reTab',t);if(location.hash)location.hash='';else render();window.scrollTo(0,0)}
+function curProj(){const m=/^#p(.+)$/.exec(location.hash);return m?S.projects.find(p=>p.id===m[1]):null}
+function openProj(id){location.hash='p'+id}
+function goList(){location.hash=''}
+window.addEventListener('hashchange',()=>{render();window.scrollTo(0,0)});
+const openItems=new Set();
+
+/* ---- modal ---- */
+function openModal(html){$('sheet').innerHTML=html;$('modal').classList.add('show')}
+function closeModal(){$('modal').classList.remove('show')}
+$('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+function fixDigits(el){const p=el.selectionStart,v=en(el.value);if(v!==el.value){el.value=v;try{el.setSelectionRange(p,p)}catch(e){}}}
+const val=id=>$(id).value.trim();
+function foot(saveFn){return`<div class="err" id="err"></div><div class="foot"><button class="btn" id="saveBtn" onclick="${saveFn}">حفظ</button><button class="btn sec" onclick="closeModal()">إلغاء</button></div>`}
+function fail(m){$('err').textContent=m}
+
+/* projects */
+function projForm(id){
+  const p=S.projects.find(x=>x.id===id)||{stage:STAGES[0]};
+  openModal(`<h2>${id?'تعديل بيانات المشروع':'مشروع جديد'}</h2>
+  <label>اسم / عنوان المشروع *</label><input id="f_name" dir="auto" value="${esc(p.name)}" placeholder="مثال: 3 ش كابول دور أول شقة">
+  <label>العميل</label><input id="f_client" dir="auto" value="${esc(p.client)}">
+  <label>المرحلة الحالية</label><select id="f_stage">${STAGES.map(s=>`<option ${s===p.stage?'selected':''}>${s}</option>`).join('')}</select>
+  <label>الميزانية (ج.م)</label><input id="f_budget" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(p.budget)}">
+  ${p.legacySpent>0?`<label>مصروف سابق (من النسخة القديمة)</label><input id="f_legacy" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(p.legacySpent)}">`:''}
+  <label>المقاول</label><input id="f_contractor" dir="auto" value="${esc(p.contractor)}">
+  <div class="two"><div><label>بداية العمل</label><input id="f_start" type="date" lang="en" dir="ltr" value="${esc(p.start)}"></div>
+  <div><label>موعد التسليم</label><input id="f_due" type="date" lang="en" dir="ltr" value="${esc(p.due)}"></div></div>
+  <label>ملاحظات</label><textarea id="f_notes" dir="auto" rows="3">${esc(p.notes)}</textarea>`+foot(`saveProj('${id||''}')`));
+}
+function saveProj(id){
+  if(!val('f_name'))return fail('اكتب اسم المشروع');
+  const o={name:val('f_name'),client:val('f_client'),stage:$('f_stage').value,budget:num(val('f_budget')),contractor:val('f_contractor'),due:$('f_due').value,start:$('f_start').value,notes:val('f_notes')};
+  if($('f_legacy'))o.legacySpent=num(val('f_legacy'));
+  if(id)Object.assign(S.projects.find(x=>x.id===id),o);
+  else{const p={id:uid(),...o,legacySpent:0,received:[],petty:[],items:defItems()};S.projects.push(p);save();closeModal();openProj(p.id);render();return}
+  save();closeModal();render();
+}
+function delProj(id){if(confirm('هتحذف المشروع بكل بياناته (الوارد والمصاريف والنثريات). متأكد؟')){S.projects=S.projects.filter(x=>x.id!==id);save();if(location.hash)location.hash='';else render()}}
+
+/* ledger entries: kind = rec (received) | item (work-item expense) | petty */
+function entryList(p,kind,iid){return kind==='rec'?p.received:kind==='petty'?p.petty:p.items.find(i=>i.id===iid).entries}
+function entryForm(kind,pid,iid,eid){
+  const p=S.projects.find(x=>x.id===pid),e=eid?entryList(p,kind,iid).find(x=>x.id===eid):{};
+  const isRec=kind==='rec',key=isRec?'note':'desc';
+  const title=(eid?'تعديل ':'إضافة ')+(isRec?'مبلغ وارد':kind==='petty'?'نثرية / انتقالات':'مصروف - '+p.items.find(i=>i.id===iid).name);
+  openModal(`<h2>${esc(title)}</h2>
+  <label>${isRec?'ملاحظة (مثال: دفعة أولى)':'البيان (مثال: فاتورة تأسيس)'}</label><input id="f_desc" dir="auto" value="${esc(e[key])}">
+  <label>المبلغ (ج.م) *</label><input id="f_amt" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(e.amount)}">
+  <label>التاريخ ${isRec?'':'(اختياري)'}</label><input id="f_date" type="date" lang="en" dir="ltr" value="${esc(e.date||(eid?'':today()))}">`+foot(`saveEntry('${kind}','${pid}','${iid}','${eid}')`));
+}
+function saveEntry(kind,pid,iid,eid){
+  if(val('f_amt')===''||isNaN(parseFloat(en(val('f_amt')))))return fail('اكتب المبلغ');
+  const p=S.projects.find(x=>x.id===pid),list=entryList(p,kind,iid),key=kind==='rec'?'note':'desc';
+  const o={[key]:val('f_desc'),amount:num(val('f_amt')),date:$('f_date').value};
+  if(eid)Object.assign(list.find(x=>x.id===eid),o);else list.push({id:uid(),...o});
+  if(iid)openItems.add(iid);
+  save();closeModal();render();
+}
+function delEntry(kind,pid,iid,eid){if(!confirm('تحذف البند ده؟'))return;const p=S.projects.find(x=>x.id===pid),l=entryList(p,kind,iid);l.splice(l.findIndex(x=>x.id===eid),1);save();render()}
+function itemForm(pid,iid){
+  const p=S.projects.find(x=>x.id===pid),it=p.items.find(i=>i.id===iid)||{};
+  openModal(`<h2>${iid?'تعديل اسم البند':'بند أعمال جديد'}</h2><label>اسم البند *</label><input id="f_name" dir="auto" value="${esc(it.name)}">`+foot(`saveItem('${pid}','${iid}')`));
+}
+function saveItem(pid,iid){
+  if(!val('f_name'))return fail('اكتب اسم البند');
+  const p=S.projects.find(x=>x.id===pid);
+  if(iid)p.items.find(i=>i.id===iid).name=val('f_name');else{const n={id:uid(),name:val('f_name'),entries:[]};p.items.push(n);openItems.add(n.id)}
+  save();closeModal();render();
+}
+function delItem(pid,iid){const p=S.projects.find(x=>x.id===pid),it=p.items.find(i=>i.id===iid);
+  if(confirm(it.entries.length?'البند ده فيه '+it.entries.length+' مصروف وهيتحذفوا معاه. متأكد؟':'تحذف البند ده؟')){p.items=p.items.filter(i=>i.id!==iid);save();render()}}
+
+/* apartments */
+function aptForm(id){
+  const a=S.apartments.find(x=>x.id===id)||{priceType:'night'};
+  openModal(`<h2>${id?'تعديل شقة':'شقة جديدة'}</h2>
+  <label>اسم الشقة *</label><input id="f_name" dir="auto" value="${esc(a.name)}" placeholder="مثال: شقة مدينة نصر 3">
+  <div class="two"><div><label>السعر (ج.م)</label><input id="f_price" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(a.price)}"></div>
+  <div><label>نوع السعر</label><select id="f_pt"><option value="night" ${a.priceType==='night'?'selected':''}>لليلة</option><option value="month" ${a.priceType==='month'?'selected':''}>للشهر</option></select></div></div>
+  <label>مصاريف شهرية (كهرباء، مياه، إنترنت، صيانة...)</label><input id="f_exp" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(a.expenses)}">`+foot(`saveApt('${id||''}')`));
+}
+function saveApt(id){
+  if(!val('f_name'))return fail('اكتب اسم الشقة');
+  const o={name:val('f_name'),price:num(val('f_price')),priceType:$('f_pt').value,expenses:num(val('f_exp'))};
+  if(id)Object.assign(S.apartments.find(x=>x.id===id),o);else S.apartments.push({id:uid(),...o,bookings:[]});
+  save();closeModal();render();
+}
+function delApt(id){if(confirm('هتحذف الشقة وكل حجوزاتها. متأكد؟')){S.apartments=S.apartments.filter(x=>x.id!==id);save();render()}}
+
+/* bookings */
+function bkForm(aid,bid){
+  const a=S.apartments.find(x=>x.id===aid),b=(a.bookings||[]).find(x=>x.id===bid)||{};
+  openModal(`<h2>${bid?'تعديل حجز':'حجز جديد'} - ${esc(a.name)}</h2>
+  <label>اسم الضيف *</label><input id="f_guest" dir="auto" value="${esc(b.guest)}">
+  <div class="two"><div><label>تاريخ الدخول *</label><input id="f_in" type="date" lang="en" dir="ltr" value="${esc(b.in)}"></div>
+  <div><label>تاريخ الخروج *</label><input id="f_out" type="date" lang="en" dir="ltr" value="${esc(b.out)}"></div></div>
+  <div class="two"><div><label>المدفوع (ج.م)</label><input id="f_paid" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(b.paid)}"></div>
+  <div><label>المتبقي (ج.م)</label><input id="f_due" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(b.due)}"></div></div>`+foot(`saveBk('${aid}','${bid||''}')`));
+}
+function saveBk(aid,bid){
+  if(!val('f_guest'))return fail('اكتب اسم الضيف');
+  if(!$('f_in').value||!$('f_out').value)return fail('اختار تاريخ الدخول والخروج');
+  if($('f_out').value<=$('f_in').value)return fail('تاريخ الخروج لازم يكون بعد الدخول');
+  const a=S.apartments.find(x=>x.id===aid);a.bookings=a.bookings||[];
+  const o={guest:val('f_guest'),in:$('f_in').value,out:$('f_out').value,paid:num(val('f_paid')),due:num(val('f_due'))};
+  if(bid)Object.assign(a.bookings.find(x=>x.id===bid),o);else a.bookings.push({id:uid(),...o});
+  save();closeModal();render();
+}
+function delBk(aid,bid){if(confirm('تحذف الحجز ده؟')){const a=S.apartments.find(x=>x.id===aid);a.bookings=a.bookings.filter(x=>x.id!==bid);save();render()}}
+
+/* backup */
+function exportData(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='backup-'+today()+'.json';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+let pendingImport=null;
+function importData(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);
+    if(!d||!Array.isArray(d.projects)||!Array.isArray(d.apartments))throw 0;
+    pendingImport=normalize(d);
+    const newP=d.projects.filter(p=>!S.projects.some(x=>x.id===p.id)).length,newA=d.apartments.filter(a=>!S.apartments.some(x=>x.id===a.id)).length;
+    openModal(`<h2>استيراد ملف</h2>
+     <p>الملف فيه <b>${d.projects.length}</b> مشروع و<b>${d.apartments.length}</b> شقة.</p>
+     <p><b>إضافة للموجود:</b> هيضيف ${newP} مشروع و${newA} شقة جديدة وهيسيب بياناتك الحالية زي ما هي (اللي موجود بنفس الكود مش هيتغيّر).</p>
+     <p><b>استبدال الكل:</b> هيمسح البيانات الحالية ويحط الملف مكانها.</p>
+     <div class="foot" style="flex-direction:column"><button class="btn" onclick="doImport('merge')">إضافة للموجود</button>
+     <button class="btn dng" onclick="doImport('replace')">استبدال كل البيانات</button>
+     <button class="btn sec" onclick="closeModal()">إلغاء</button></div>`);
+  }catch(e){alert('الملف مش صالح')}inp.value=''};
+  r.readAsText(f);
+}
+function doImport(mode){
+  const d=pendingImport;if(!d)return;
+  if(mode==='replace')S=d;
+  else{d.projects.forEach(p=>{if(!S.projects.some(x=>x.id===p.id))S.projects.push(p)});d.apartments.forEach(a=>{if(!S.apartments.some(x=>x.id===a.id))S.apartments.push(a)})}
+  pendingImport=null;save();closeModal();if(location.hash)location.hash='';render();alert('تم الاستيراد ✅');
+}
+render();
+</script>
+</body>
+</html>
