@@ -71,11 +71,57 @@ details.it .in{padding:0 14px 14px}
 .en .a{font-weight:700;white-space:nowrap}
 .ib{border:0;background:#f3f4f6;border-radius:10px;min-width:44px;min-height:44px;font-size:17px}
 .err{color:var(--red);font-size:14px;margin-top:6px;min-height:18px}
+
+header .brand{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+header .brand img{height:46px;width:auto;background:#fff;border-radius:10px;padding:3px;display:block}
+header .brand h1{margin:0;font-size:20px;line-height:1.2}
+header .brand small{display:block;font-size:12px;letter-spacing:2px;opacity:.9;direction:ltr;text-align:right}
+.chk{display:flex;align-items:center;gap:10px;font-weight:600;margin:12px 0}
+.chk input{width:24px;min-height:24px;height:24px;flex:none}
+#printView{display:none}
+#printView.on{display:block;position:fixed;inset:0;z-index:50;background:#d1d5db;overflow:auto}
+.pv-bar{position:sticky;top:0;display:flex;gap:8px;padding:10px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);z-index:2}
+.pv-bar .btn{flex:1}
+.pv-hint{font-size:12px;color:var(--mut);text-align:center;padding:6px 10px 0}
+.pv-doc{background:#fff;color:#111;max-width:794px;margin:12px auto;padding:22px 18px;font-size:14px;line-height:1.55;direction:rtl}
+.pv-head{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:3px solid #0f766e;padding-bottom:10px;margin-bottom:12px}
+.pv-head .lg{display:flex;align-items:center;gap:10px}
+.pv-head img{height:54px;width:auto;display:block}
+.pv-head .co{font-weight:800;font-size:16px;white-space:nowrap;letter-spacing:2px;direction:ltr;color:#0b5a54}
+.pv-head .ti{text-align:left;font-weight:800;font-size:22px;color:#0f766e;white-space:nowrap}
+.pv-meta{display:flex;flex-wrap:wrap;gap:4px 24px;margin-bottom:12px;font-size:14px}
+.pv-meta b{font-size:17px}
+.pv-sum{display:flex;gap:8px;margin:10px 0 16px}
+.pv-sum div{flex:1;border:1.5px solid #0f766e;border-radius:8px;padding:8px;text-align:center}
+.pv-sum small{display:block;color:#4b5563;font-size:12px}
+.pv-sum b{font-size:14px;white-space:nowrap}
+.pv-sum .bal{background:#ecfdf5}
+.pv-doc h2{font-size:16px;margin:18px 0 6px;color:#0b5a54;border-right:5px solid #0f766e;padding-right:8px;break-after:avoid}
+.pv-doc table{width:100%;border-collapse:collapse;font-size:13px}
+.pv-doc th{background:#0f766e;color:#fff;padding:6px;text-align:right;font-weight:700}
+.pv-doc td{padding:5px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top}
+.pv-doc thead{display:table-header-group}
+.pv-doc tr{break-inside:avoid;page-break-inside:avoid}
+.pv-doc td.n,.pv-doc th.n{text-align:left;white-space:nowrap}
+.pv-doc td.c{white-space:nowrap;text-align:center}
+.pv-doc tr.ih td{background:#e6f4f2;font-weight:800;border-top:1px solid #0f766e}
+.pv-doc tr.tt td{background:#f3f4f6;font-weight:800;border-top:2px solid #0f766e}
+.pv-foot{margin-top:18px;font-size:12px;color:#6b7280;text-align:center;border-top:1px solid #e5e7eb;padding-top:8px}
+@media print{
+ @page{size:A4;margin:14mm}
+ html,body{background:#fff!important;padding:0!important}
+ body.pv-on>*:not(#printView){display:none!important}
+ #printView.on{position:static;background:none;overflow:visible;display:block}
+ .pv-bar,.pv-hint{display:none!important}
+ .pv-doc{max-width:none;margin:0;padding:0;font-size:12pt}
+ .pv-doc table{font-size:10.5pt}
+ .pv-doc{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>🏗️ إدارة الشغل</h1>
+  <div class="brand"><img id="hLogo" alt="HORIZON HOMES"><div><h1>إدارة الشغل</h1><small>HORIZON HOMES</small></div></div>
   <div class="sum" id="sum"></div>
 </header>
 <div class="tabs">
@@ -84,10 +130,14 @@ details.it .in{padding:0 14px 14px}
 </div>
 <main id="main"></main>
 <button class="btn fab" id="fab"></button>
+<div id="printView"></div>
 <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
 
 <script>
 const KEY='realEstateAppV1';
+const DEFAULT_LOGO='data:image/jpeg;base64,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6AVBDpSx1K4vx1ZLiTjwQlFltI6UtmirDTWW1RcFPAObj9aV563uPaT/ANluFW7o/SP+3W/GjUq7QjXYs1cNemY13rP5DpOiz0XAP5vl156+aEHa19I2voKmjccNqInxE9wc0j8VUzZW7s273VdQXsilDxLbJnP5COTiHCT3AuaBnxVulE28GxkGvZXXqzTRUV7DQ2QSDEVUB1cWPquHVxfHvQlEsrg97NXUelNv7mJpWet3CF9HSxZ9p7njhJx3NBJJ8u9Q1Rz7+6MgFppqS6zwR+xGegjq2tHZwv5nHmV+to2T3A3GvLLrrutnooOXE6oka+ct+zGwcmDzxjuKDBufRR09PGy96gkYWwShlHCT+mQeJ5Hl7IVg14bFY7fpu001ptdO2no6VnBHGPmSe0k8ye0le5CCs3pV/wCVth/YXf3pU2640Hb9w9Ii01oEcwjbJS1OMugl4eTh4dhHaFGvpCbc6p1pqK0VdgtL62GnpHRyPbKxvC7jzj2nDsU5UzHR00LHDDmsaCO44QnJTWl1JfttqTVGhLvA/oK2GSB8BPKKYj2ZWHta4Yz3jB7FLXoof5N379tZ/drpd8Npxr+0tuNriYL9RNxFzDfWY+2Mk9va0nt5dq8vo8aLv+irJd6a/wBudQy1FUySJrpGO4mhmCfZJ7UBLKIiEBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAf/2Q==';
+const LOGO_KEY='reLogoV1';
+function getLogo(){try{return localStorage.getItem(LOGO_KEY)||DEFAULT_LOGO}catch(e){return DEFAULT_LOGO}}
 const AR='٠١٢٣٤٥٦٧٨٩',FA='۰۱۲۳۴۵۶۷۸۹';
 const en=s=>String(s==null?'':s).replace(/[٠-٩]/g,d=>AR.indexOf(d)).replace(/[۰-۹]/g,d=>FA.indexOf(d)).replace(/[٫,]/g,'.').replace(/[٬،\s]/g,'');
 const num=v=>{const n=parseFloat(en(v));return isNaN(n)?0:n};
@@ -145,6 +195,7 @@ function render(){
    <div><small>الميزانية / المصروف</small><b>${money(tb)} / ${money(ts)}</b></div>
    <div><small>إجمالي الوارد / الرصيد</small><b>${money(tr)} / ${money(tr-ts)}</b></div>
    <div><small>إيراد الشهر ده</small><b>${money(im)}</b></div>`;
+  $('hLogo').src=getLogo();
   $('tabP').classList.toggle('on',tab==='P');$('tabA').classList.toggle('on',tab==='A');
   $('fab').textContent=tab==='P'?'＋ إضافة مشروع':'＋ إضافة شقة';
   $('fab').onclick=()=>tab==='P'?projForm():aptForm();
@@ -153,6 +204,8 @@ function render(){
    <div class="bkp"><button class="btn sec sm" onclick="exportData()">⬇️ تصدير نسخة احتياطية</button>
    <button class="btn sec sm" onclick="$('imp').click()">⬆️ استيراد نسخة</button></div>
    <input type="file" id="imp" accept="application/json,.json" hidden onchange="importData(this)">
+   <div class="bkp"><button class="btn sec sm" onclick="$('logoIn').click()">🖼️ تغيير اللوجو</button>${localStorage.getItem(LOGO_KEY)?'<button class="btn sec sm" onclick="resetLogo()">↩️ اللوجو الأصلي</button>':''}</div>
+   <input type="file" id="logoIn" accept="image/*" hidden onchange="changeLogo(this)">
    <div class="note">البيانات محفوظة على موبايلك فقط. صدّر نسخة احتياطية من وقت للتاني.</div>`;
 }
 function renderP(){
@@ -196,7 +249,7 @@ function renderDetail(p){
   ${p.start?`<div class="row"><span>بداية العمل</span><b>${fdate(p.start)}</b></div>`:''}
   <div class="row"><span>موعد التسليم</span><b style="color:${od?'var(--red)':'inherit'}">${fdate(p.due)}</b></div>
   ${p.notes?`<div class="sub" style="margin-top:6px;white-space:pre-wrap">📝 ${esc(p.notes)}</div>`:''}
-  <div class="acts"><button class="btn sm" onclick="projForm('${p.id}')">تعديل بيانات المشروع</button><button class="btn dng sm" onclick="delProj('${p.id}')">حذف</button></div></div>
+  <div class="acts"><button class="btn sm" id="pdfBtn" onclick="pdfForm('P','${p.id}')">📄 تصدير PDF</button><button class="btn sec sm" onclick="projForm('${p.id}')">تعديل بيانات المشروع</button><button class="btn dng sm" onclick="delProj('${p.id}')">حذف</button></div></div>
 
   <div class="sec-h"><span>💰 المبالغ الوارد</span><span>${money(rec)}</span></div>
   <div class="card">${p.received.length?p.received.slice().sort((x,y)=>(x.date||'').localeCompare(y.date||'')).map(e=>entryRow('rec',p,'',e)).join(''):'<div class="sub">لسه مفيش مبالغ وارد.</div>'}
@@ -235,6 +288,7 @@ function renderA(){
       <div class="row"><span>مدفوع: ${money(num(b.paid))}</span><span style="color:${num(b.due)>0?'var(--red)':'inherit'}">متبقي: ${money(num(b.due))}</span></div>
       <div class="acts" style="margin-top:2px"><button class="btn sec sm" onclick="bkForm('${a.id}','${b.id}')">تعديل</button><button class="btn dng sm" onclick="delBk('${a.id}','${b.id}')">حذف</button></div></div>`).join(''):'<div class="sub">مفيش حجوزات لسه.</div>'}
     <div class="acts"><button class="btn sm" onclick="bkForm('${a.id}')">＋ حجز جديد</button>
+    <button class="btn sm pdfApt" onclick="pdfForm('A','${a.id}')">📄 تصدير PDF</button>
     <button class="btn sec sm" onclick="aptForm('${a.id}')">تعديل الشقة</button>
     <button class="btn dng sm" onclick="delApt('${a.id}')">حذف الشقة</button></div></div>`}).join('');
 }
@@ -379,6 +433,92 @@ function doImport(mode){
   else{d.projects.forEach(p=>{if(!S.projects.some(x=>x.id===p.id))S.projects.push(p)});d.apartments.forEach(a=>{if(!S.apartments.some(x=>x.id===a.id))S.apartments.push(a)})}
   pendingImport=null;save();closeModal();if(location.hash)location.hash='';render();alert('تم الاستيراد ✅');
 }
+/* ---- logo ---- */
+function changeLogo(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{const im=new Image();im.onload=()=>{
+    const k=Math.min(1,300/Math.max(im.width,im.height)),c=document.createElement('canvas');
+    c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+    const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);
+    try{localStorage.setItem(LOGO_KEY,c.toDataURL('image/jpeg',.85))}catch(e){alert('تعذر حفظ اللوجو')}
+    render()};im.onerror=()=>alert('الملف مش صورة صالحة');im.src=r.result};
+  r.readAsDataURL(f);inp.value='';
+}
+function resetLogo(){localStorage.removeItem(LOGO_KEY);render()}
+
+/* ---- PDF / statement (client-side only: print-optimized HTML + window.print) ---- */
+function pdfForm(kind,id){
+  if(kind==='P')openModal(`<h2>📄 تصدير PDF - كشف حساب</h2>
+   <div class="sub">هيظهر كشف الحساب قدامك، وبعدها دوس «طباعة / حفظ PDF» واختار «Save as PDF».</div>
+   <label class="chk"><input type="checkbox" id="o_petty"> إخفاء النثريات (الرصيد هيتحسب بدونها)</label>
+   <label class="chk"><input type="checkbox" id="o_empty"> إظهار البنود اللي مفيهاش مصروفات</label>`
+   +`<div class="foot"><button class="btn" onclick="showStatement('P','${id}')">عرض كشف الحساب</button><button class="btn sec" onclick="closeModal()">إلغاء</button></div>`);
+  else openModal(`<h2>📄 تصدير PDF - كشف الشقة</h2>
+   <div class="sub">كشف بكل الحجوزات والمدفوع والمتبقي.</div>
+   <label class="chk"><input type="checkbox" id="o_costs"> إظهار المصاريف الشهرية وصافي الربح</label>`
+   +`<div class="foot"><button class="btn" onclick="showStatement('A','${id}')">عرض كشف الحساب</button><button class="btn sec" onclick="closeModal()">إلغاء</button></div>`);
+}
+const chkv=id=>!!$(id)&&$(id).checked;
+function docHead(title){
+  return`<div class="pv-head"><div class="lg"><img src="${getLogo()}" alt=""><span class="co">HORIZON HOMES</span></div><div class="ti">${esc(title)}</div></div>`;
+}
+function tbl(head,rows,foot){
+  return`<table><thead><tr>${head}</tr></thead><tbody>${rows}${foot||''}</tbody></table>`;
+}
+function stmtProject(p,o){
+  const rec=recTotal(p),exp=expTotal(p),pt=pettyTotal(p),hideP=o.hidePetty;
+  const bal=hideP?rec-exp:rec-exp-pt;
+  const sorted=p.received.slice().sort((x,y)=>(x.date||'').localeCompare(y.date||''));
+  let n=0;
+  const itemRows=p.items.filter(i=>o.showEmpty||i.entries.length).map(it=>{
+    n++;
+    return`<tr class="ih"><td class="c">${n}</td><td colspan="2">${esc(it.name)}</td><td class="n">${money(itemTotal(it))}</td></tr>`+
+    it.entries.map(e=>`<tr><td></td><td>${esc(e.desc||'—')}</td><td class="c">${e.date?fdate(e.date):''}</td><td class="n">${money(num(e.amount))}</td></tr>`).join('');
+  }).join('')+(num(p.legacySpent)>0?`<tr class="ih"><td class="c">•</td><td colspan="2">مصروفات سابقة</td><td class="n">${money(num(p.legacySpent))}</td></tr>`:'');
+  const sum=`<div class="pv-sum"><div><small>إجمالي الوارد</small><b>${money(rec)}</b></div><div><small>إجمالي المصاريف</small><b>${money(exp)}</b></div>`+
+    (hideP?'':`<div><small>النثريات والانتقالات</small><b>${money(pt)}</b></div>`)+
+    `<div class="bal"><small>الرصيد المتبقي</small><b style="color:${bal<0?'#dc2626':'#15803d'}">${money(bal)}</b></div></div>`;
+  return`${docHead('كشف حساب')}
+  <div class="pv-meta"><div>المشروع: <b>${esc(p.name)}</b></div>${p.client?`<div>العميل: <b>${esc(p.client)}</b></div>`:''}<div>التاريخ: <b>${fdate(today())}</b></div></div>
+  ${sum}
+  <h2>الوارد (المبالغ المستلمة)</h2>
+  ${sorted.length?tbl('<th>#</th><th>البيان</th><th>التاريخ</th><th class="n">المبلغ</th>',sorted.map((e,i)=>`<tr><td class="c">${i+1}</td><td>${esc(e.note||'—')}</td><td class="c">${e.date?fdate(e.date):''}</td><td class="n">${money(num(e.amount))}</td></tr>`).join(''),`<tr class="tt"><td colspan="3">إجمالي الوارد</td><td class="n">${money(rec)}</td></tr>`):'<div>لا يوجد.</div>'}
+  <h2>بنود الأعمال والمصروفات</h2>
+  ${itemRows?tbl('<th>#</th><th>البند / البيان</th><th>التاريخ</th><th class="n">المبلغ</th>',itemRows,`<tr class="tt"><td colspan="3">إجمالي المصاريف</td><td class="n">${money(exp)}</td></tr>`):'<div>لا يوجد.</div>'}
+  ${hideP?'':`<h2>النثريات والانتقالات</h2>
+  ${p.petty.length?tbl('<th>#</th><th>البيان</th><th>التاريخ</th><th class="n">المبلغ</th>',p.petty.map((e,i)=>`<tr><td class="c">${i+1}</td><td>${esc(e.desc||'—')}</td><td class="c">${e.date?fdate(e.date):''}</td><td class="n">${money(num(e.amount))}</td></tr>`).join(''),`<tr class="tt"><td colspan="3">إجمالي النثريات</td><td class="n">${money(pt)}</td></tr>`):'<div>لا يوجد.</div>'}`}
+  <h2>الخلاصة</h2>
+  ${tbl('<th>البيان</th><th class="n">المبلغ</th>',`<tr><td>إجمالي الوارد</td><td class="n">${money(rec)}</td></tr><tr><td>إجمالي المصاريف</td><td class="n">${money(exp)}</td></tr>${hideP?'':`<tr><td>إجمالي النثريات والانتقالات</td><td class="n">${money(pt)}</td></tr>`}`,`<tr class="tt"><td>الرصيد المتبقي</td><td class="n">${money(bal)}</td></tr>`)}
+  <div class="pv-foot">HORIZON HOMES — كشف حساب بتاريخ ${fdate(today())}</div>`;
+}
+function stmtApt(a,o){
+  const bks=(a.bookings||[]).slice().sort((x,y)=>(x.in||'').localeCompare(y.in||'')),paid=bks.reduce((t,b)=>t+num(b.paid),0),due=bks.reduce((t,b)=>t+num(b.due),0);
+  const inc=income(a),net=inc-num(a.expenses);
+  return`${docHead('كشف حساب شقة')}
+  <div class="pv-meta"><div>الشقة: <b>${esc(a.name)}</b></div><div>السعر: <b>${money(num(a.price))} / ${a.priceType==='month'?'شهر':'ليلة'}</b></div><div>التاريخ: <b>${fdate(today())}</b></div></div>
+  <div class="pv-sum"><div><small>عدد الحجوزات</small><b>${bks.length}</b></div><div><small>إجمالي المدفوع</small><b>${money(paid)}</b></div><div class="bal"><small>إجمالي المتبقي</small><b style="color:${due>0?'#dc2626':'#15803d'}">${money(due)}</b></div></div>
+  <h2>الحجوزات</h2>
+  ${bks.length?tbl('<th>#</th><th>الضيف</th><th>الدخول</th><th>الخروج</th><th class="n">المدفوع</th><th class="n">المتبقي</th>',bks.map((b,i)=>`<tr><td class="c">${i+1}</td><td>${esc(b.guest)}</td><td class="c">${fdate(b.in)}</td><td class="c">${fdate(b.out)}</td><td class="n">${money(num(b.paid))}</td><td class="n">${money(num(b.due))}</td></tr>`).join(''),`<tr class="tt"><td colspan="4">الإجمالي</td><td class="n">${money(paid)}</td><td class="n">${money(due)}</td></tr>`):'<div>لا توجد حجوزات.</div>'}
+  ${o.costs?`<h2>مصاريف وصافي الربح (الشهر الحالي)</h2>${tbl('<th>البيان</th><th class="n">المبلغ</th>',`<tr><td>الإيراد المحصّل هذا الشهر</td><td class="n">${money(inc)}</td></tr><tr><td>المصاريف الشهرية</td><td class="n">${money(num(a.expenses))}</td></tr>`,`<tr class="tt"><td>صافي الربح</td><td class="n">${money(net)}</td></tr>`)}`:''}
+  <div class="pv-foot">HORIZON HOMES — كشف حساب بتاريخ ${fdate(today())}</div>`;
+}
+let pvTitle='';
+function showStatement(kind,id){
+  let html,name;
+  if(kind==='P'){const p=S.projects.find(x=>x.id===id);name=p.name;html=stmtProject(p,{hidePetty:chkv('o_petty'),showEmpty:chkv('o_empty')})}
+  else{const a=S.apartments.find(x=>x.id===id);name=a.name;html=stmtApt(a,{costs:chkv('o_costs')})}
+  closeModal();pvTitle='كشف حساب - '+name;
+  $('printView').innerHTML=`<div class="pv-bar"><button class="btn" id="pvPrint" onclick="doPrint()">🖨️ طباعة / حفظ PDF</button><button class="btn sec" id="pvClose" onclick="closeStatement()">إغلاق</button></div>
+   <div class="pv-hint">في نافذة الطباعة اختار «Save as PDF» / «حفظ كـ PDF». الكشف بيتجهّز على جهازك بس.</div>
+   <div class="pv-doc" id="pvDoc">${html}</div>`;
+  $('printView').classList.add('on');document.body.classList.add('pv-on');$('printView').scrollTop=0;
+}
+let _oldTitle='';
+function doPrint(){_oldTitle=document.title;document.title=pvTitle;window.print();setTimeout(()=>{document.title=_oldTitle},1500)}
+window.addEventListener('afterprint',()=>{if(_oldTitle)document.title=_oldTitle});
+function closeStatement(){$('printView').classList.remove('on');$('printView').innerHTML='';document.body.classList.remove('pv-on')}
+
 render();
 </script>
 </body>
