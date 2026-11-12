@@ -71,6 +71,10 @@ details.it .in{padding:0 14px 14px}
 .en .a{font-weight:700;white-space:nowrap}
 .ib{border:0;background:#f3f4f6;border-radius:10px;min-width:44px;min-height:44px;font-size:17px}
 .err{color:var(--red);font-size:14px;margin-top:6px;min-height:18px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg button{font:inherit;font-weight:700;border:1.5px solid var(--bd);border-radius:12px;padding:12px 8px;min-height:50px;background:#fff;color:var(--tx)}
+.seg button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+
 
 header .brand{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 header .brand img{height:46px;width:auto;background:#fff;border-radius:10px;padding:3px;display:block}
@@ -107,15 +111,23 @@ header .brand small{display:block;font-size:12px;letter-spacing:2px;opacity:.9;d
 .pv-doc tr.ih td{background:#e6f4f2;font-weight:800;border-top:1px solid #0f766e}
 .pv-doc tr.tt td{background:#f3f4f6;font-weight:800;border-top:2px solid #0f766e}
 .pv-foot{margin-top:18px;font-size:12px;color:#6b7280;text-align:center;border-top:1px solid #e5e7eb;padding-top:8px}
+.pv-doc{position:relative}
+.pv-wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0}
+.pv-wm img{width:70%;max-width:480px;opacity:.08;display:block}
+.pv-body{position:relative;z-index:1}
+.pv-nav{display:flex;gap:8px;align-items:center;padding:8px 10px 0;flex-wrap:wrap;background:#fff}
+.pv-nav input[type=month]{flex:1;min-width:140px}
+.pv-nav .btn{flex:none}
 @media print{
  @page{size:A4;margin:14mm}
  html,body{background:#fff!important;padding:0!important}
  body.pv-on>*:not(#printView){display:none!important}
  #printView.on{position:static;background:none;overflow:visible;display:block}
- .pv-bar,.pv-hint{display:none!important}
+ .pv-bar,.pv-hint,.pv-nav{display:none!important}
  .pv-doc{max-width:none;margin:0;padding:0;font-size:12pt}
  .pv-doc table{font-size:10.5pt}
  .pv-doc{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .pv-wm{position:fixed}
 }
 </style>
 </head>
@@ -153,7 +165,16 @@ function normProj(p){ // migrates old projects (single "spent" number) to the ne
   p.items.forEach(i=>{i.id=i.id||uid();i.entries=Array.isArray(i.entries)?i.entries:[]});
   [...p.received,...p.petty,...p.items.flatMap(i=>i.entries)].forEach(e=>{e.id=e.id||uid()});
   return p}
-function normalize(d){d.projects.forEach(normProj);d.apartments.forEach(a=>{a.bookings=Array.isArray(a.bookings)?a.bookings:[]});return d}
+function normApt(a){
+  a.bookings=Array.isArray(a.bookings)?a.bookings:[];
+  a.costs=Array.isArray(a.costs)?a.costs:[];
+  a.expenses=num(a.expenses);
+  a.costs.forEach(e=>{e.id=e.id||uid()});
+  a.ownType=a.ownType==='sublease'?'sublease':'owned';
+  a.leaseAmount=num(a.leaseAmount);
+  a.leasePeriod=a.leasePeriod==='year'?'year':'month';
+  return a}
+function normalize(d){d.projects.forEach(normProj);d.apartments.forEach(normApt);return d}
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&Array.isArray(d.projects)&&Array.isArray(d.apartments)){const n=normalize(d);return n}}catch(e){}return{projects:[],apartments:[]}}
 function save(){localStorage.setItem(KEY,JSON.stringify(S))}
 S=load();
@@ -164,8 +185,15 @@ function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'
 const today=()=>iso(new Date());
 function fdate(s){if(!s)return '—';const [y,m,d]=s.split('-');return d+'/'+m+'/'+y}
 function dayNum(s){const [y,m,d]=s.split('-').map(Number);return Math.round(Date.UTC(y,m-1,d)/864e5)}
-function monthRange(){const n=new Date();const a=new Date(n.getFullYear(),n.getMonth(),1),b=new Date(n.getFullYear(),n.getMonth()+1,1);return[dayNum(iso(a)),dayNum(iso(b))]} // [start, endExclusive)
-const inThisMonth=s=>{if(!s)return false;const[a,b]=monthRange(),d=dayNum(s);return d>=a&&d<b};
+const AR_MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const curYm=()=>iso(new Date()).slice(0,7);
+function parseYm(ym){const[y,m]=(ym||curYm()).split('-').map(Number);return[y,m]}
+function monthLabel(ym){const[y,m]=parseYm(ym);return AR_MONTHS[m-1]+' '+y}
+function shiftYm(ym,k){const[y,m]=parseYm(ym);return iso(new Date(y,m-1+k,1)).slice(0,7)}
+function monthBounds(ym){const[y,m]=parseYm(ym);const a=new Date(y,m-1,1),b=new Date(y,m,1);return[dayNum(iso(a)),dayNum(iso(b))]} // [start, endExclusive)
+function monthRange(){return monthBounds(curYm())}
+function inMonth(s,ym){if(!s)return false;const[a,b]=monthBounds(ym),d=dayNum(s);return d>=a&&d<b}
+const inThisMonth=s=>inMonth(s,curYm());
 
 /* ---- calculations ---- */
 const sumAmt=a=>a.reduce((t,e)=>t+num(e.amount),0);
@@ -181,9 +209,19 @@ function occupancy(a){ // nights booked in the current month / days in month
   (a.bookings||[]).forEach(b=>{if(!b.in||!b.out)return;const s=Math.max(dayNum(b.in),ms),e=Math.min(dayNum(b.out),me);for(let d=s;d<e;d++)set.add(d)});
   return{nights:set.size,days,pct:Math.round(set.size/days*100)};
 }
-function income(a){return(a.bookings||[]).filter(b=>inThisMonth(b.in)).reduce((t,b)=>t+num(b.paid),0)}
-function expected(a){return(a.bookings||[]).filter(b=>inThisMonth(b.in)).reduce((t,b)=>t+num(b.paid)+num(b.due),0)}
+function incomeIn(a,ym){return(a.bookings||[]).filter(b=>inMonth(b.in,ym)).reduce((t,b)=>t+num(b.paid),0)}
+function expectedIn(a,ym){return(a.bookings||[]).filter(b=>inMonth(b.in,ym)).reduce((t,b)=>t+num(b.paid)+num(b.due),0)}
+function income(a){return incomeIn(a,curYm())}
+function expected(a){return expectedIn(a,curYm())}
 function bookingsMonth(a){return(a.bookings||[]).filter(b=>inThisMonth(b.in)).length}
+function leaseMonthly(a){if((a.ownType||'owned')!=='sublease')return 0;const amt=num(a.leaseAmount);return a.leasePeriod==='year'?Math.round(amt/12*100)/100:amt}
+function costsDatedIn(a,ym){return(a.costs||[]).filter(e=>inMonth(e.date,ym)).reduce((t,e)=>t+num(e.amount),0)}
+function costsIn(a,ym){return leaseMonthly(a)+num(a.expenses)+costsDatedIn(a,ym)}
+function costsMonth(a){return costsIn(a,curYm())}
+function ownLabel(a){return a.ownType==='sublease'?'مؤجرة من الباطن':'ملك للشركة'}
+function nightsOf(b){return(!b.in||!b.out)?0:Math.max(0,dayNum(b.out)-dayNum(b.in))}
+function bkTotal(b){if(b.rentType==='day'||b.rentType==='month')return(b.total!=null&&b.total!=='')?num(b.total):num(b.rate)*num(b.units);return num(b.paid)+num(b.due)}
+function rentNote(b){if(b.rentType==='day')return 'إيجار باليوم: '+money(num(b.rate))+' × '+num(b.units)+' يوم';if(b.rentType==='month')return 'إيجار بالشهر: '+money(num(b.rate))+' × '+num(b.units)+' شهر';return ''}
 
 /* ---- render ---- */
 function render(){
@@ -272,22 +310,33 @@ function renderDetail(p){
 function toggleItem(id,o){o?openItems.add(id):openItems.delete(id)}
 function renderA(){
   if(!S.apartments.length)return`<div class="empty"><div class="ic">🛋️</div><p>لسه مفيش شقق مفروشة.<br>اضغط «إضافة شقة» عشان تسجّل أول شقة.</p></div>`;
-  return S.apartments.map(a=>{
-    const o=occupancy(a),inc=income(a),net=inc-num(a.expenses);
+  const head=`<div class="acts" style="margin-bottom:12px"><button class="btn" style="width:100%" onclick="showPnl()">📊 تقرير الربح والخسارة شهرياً</button></div>`;
+  return head+S.apartments.map(a=>{
+    const o=occupancy(a),inc=income(a),cstm=costsMonth(a),net=inc-cstm;
     const bks=(a.bookings||[]).slice().sort((x,y)=>(y.in||'').localeCompare(x.in||''));
+    const costs=(a.costs||[]).slice().sort((x,y)=>(y.date||'').localeCompare(x.date||''));
+    const lease=leaseMonthly(a);
     return`<div class="card"><h3>${esc(a.name)}</h3>
-    <div class="sub">${money(num(a.price))} / ${a.priceType==='month'?'شهر':'ليلة'}</div>
+    <div class="sub">${money(num(a.price))} / ${a.priceType==='month'?'شهر':'ليلة'} · <span class="badge ${a.ownType==='sublease'?'amb':''}">${ownLabel(a)}</span></div>
+    ${a.ownType==='sublease'?`<div class="sub">إيجار المالك: ${money(lease)} / شهر${a.leasePeriod==='year'?' (من '+money(num(a.leaseAmount))+' سنوي)':''}</div>`:''}
     <div class="row"><span>الإشغال الشهر ده</span><b>${o.pct}% (${o.nights} من ${o.days} يوم)</b></div>
     <div class="bar"><i style="width:${o.pct}%"></i></div>
     <div class="row"><span>الإيراد المحصّل الشهر ده</span><b>${money(inc)}</b></div>
-    <div class="row"><span>مصاريف شهرية</span><b>${money(num(a.expenses))}</b></div>
+    <div class="row"><span>المنصرفات الشهر ده</span><b>${money(cstm)}</b></div>
     <div class="row"><span>صافي الربح</span><b style="color:${net<0?'var(--red)':'var(--grn)'}">${money(net)}</b></div>
     <div class="row"><span>لسه هيتحصّل (حجوزات الشهر)</span><b>${money(expected(a)-inc)}</b></div>
     <div style="margin-top:10px;font-weight:700">الحجوزات (${bks.length})</div>
     ${bks.length?bks.map(b=>`<div class="bk"><div class="t"><span>${esc(b.guest)}</span><span>${fdate(b.in)} ← ${fdate(b.out)}</span></div>
+      ${rentNote(b)?`<div class="sub">${rentNote(b)} — الإجمالي ${money(bkTotal(b))}</div>`:''}
       <div class="row"><span>مدفوع: ${money(num(b.paid))}</span><span style="color:${num(b.due)>0?'var(--red)':'inherit'}">متبقي: ${money(num(b.due))}</span></div>
       <div class="acts" style="margin-top:2px"><button class="btn sec sm" onclick="bkForm('${a.id}','${b.id}')">تعديل</button><button class="btn dng sm" onclick="delBk('${a.id}','${b.id}')">حذف</button></div></div>`).join(''):'<div class="sub">مفيش حجوزات لسه.</div>'}
-    <div class="acts"><button class="btn sm" onclick="bkForm('${a.id}')">＋ حجز جديد</button>
+    <div class="acts"><button class="btn sm" onclick="bkForm('${a.id}')">＋ حجز جديد</button></div>
+    <div style="margin-top:12px;font-weight:700">المنصرفات (${costs.length}${lease||num(a.expenses)?' + شهري '+money(lease+num(a.expenses)):''})</div>
+    ${lease?`<div class="sub">إيجار المالك (قاعدة شهرية): ${money(lease)}</div>`:''}
+    ${num(a.expenses)?`<div class="sub">مصاريف شهرية ثابتة: ${money(num(a.expenses))} (بتتحسب كل شهر)</div>`:''}
+    ${costs.length?costs.map(e=>`<div class="en"><div class="d">${esc(e.desc||'—')}<small>${e.date?fdate(e.date):''}</small></div><div class="a">${money(num(e.amount))}</div>
+      <button class="ib" aria-label="تعديل" onclick="costForm('${a.id}','${e.id}')">✏️</button><button class="ib" aria-label="حذف" onclick="delCost('${a.id}','${e.id}')">🗑️</button></div>`).join(''):'<div class="sub">مفيش منصرفات مسجّلة.</div>'}
+    <div class="acts"><button class="btn sm" onclick="costForm('${a.id}')">＋ إضافة منصرف</button>
     <button class="btn sm pdfApt" onclick="pdfForm('A','${a.id}')">📄 تصدير PDF</button>
     <button class="btn sec sm" onclick="aptForm('${a.id}')">تعديل الشقة</button>
     <button class="btn dng sm" onclick="delApt('${a.id}')">حذف الشقة</button></div></div>`}).join('');
@@ -367,41 +416,135 @@ function delItem(pid,iid){const p=S.projects.find(x=>x.id===pid),it=p.items.find
 
 /* apartments */
 function aptForm(id){
-  const a=S.apartments.find(x=>x.id===id)||{priceType:'night'};
+  const a=S.apartments.find(x=>x.id===id)||{priceType:'night',ownType:'owned',leasePeriod:'month'};
+  const ot=a.ownType==='sublease'?'sublease':'owned';
   openModal(`<h2>${id?'تعديل شقة':'شقة جديدة'}</h2>
   <label>اسم الشقة *</label><input id="f_name" dir="auto" value="${esc(a.name)}" placeholder="مثال: شقة مدينة نصر 3">
   <div class="two"><div><label>السعر (ج.م)</label><input id="f_price" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(a.price)}"></div>
   <div><label>نوع السعر</label><select id="f_pt"><option value="night" ${a.priceType==='night'?'selected':''}>لليلة</option><option value="month" ${a.priceType==='month'?'selected':''}>للشهر</option></select></div></div>
-  <label>مصاريف شهرية (كهرباء، مياه، إنترنت، صيانة...)</label><input id="f_exp" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(a.expenses)}">`+foot(`saveApt('${id||''}')`));
+  <label>ملكية الشقة</label>
+  <div class="seg" id="ownSeg"><button type="button" data-t="owned" class="${ot==='owned'?'on':''}" onclick="setOwnType('owned')">ملك للشركة</button>
+  <button type="button" data-t="sublease" class="${ot==='sublease'?'on':''}" onclick="setOwnType('sublease')">مؤجرة من الباطن</button></div>
+  <div id="leaseBox" style="display:${ot==='sublease'?'block':'none'}">
+    <div class="two"><div><label>قيمة الإيجار للمالك (ج.م) *</label><input id="f_lease" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this);updLeaseMo()" value="${esc(a.leaseAmount)}"></div>
+    <div><label>الفترة</label><select id="f_lp" onchange="updLeaseMo()"><option value="month" ${a.leasePeriod!=='year'?'selected':''}>شهري</option><option value="year" ${a.leasePeriod==='year'?'selected':''}>سنوي</option></select></div></div>
+    <div class="tot" id="leaseTot"></div>
+    <div class="sub">القسط الشهري بيتضاف تلقائي كقاعدة منصرفات كل شهر، بالإضافة للمنصرفات بتاريخها.</div>
+  </div>
+  <label>مصاريف شهرية ثابتة أخرى (كهرباء، مياه... بتتحسب كل شهر)</label><input id="f_exp" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(a.expenses)}">
+  <div class="sub">المنصرفات بتاريخ معيّن تتضاف من كارت الشقة («إضافة منصرف»).</div>`+foot(`saveApt('${id||''}')`));
+  updLeaseMo();
+}
+function setOwnType(t){
+  document.querySelectorAll('#ownSeg button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  if($('leaseBox'))$('leaseBox').style.display=t==='sublease'?'block':'none';
+  updLeaseMo();
+}
+function updLeaseMo(){
+  if(!$('leaseTot')||!$('f_lease'))return;
+  const amt=num($('f_lease').value),mo=$('f_lp').value==='year'?Math.round(amt/12*100)/100:amt;
+  $('leaseTot').innerHTML=`<div class="row big"><span>القسط الشهري (قاعدة المنصرف)</span><b>${money(mo)}</b></div>`;
 }
 function saveApt(id){
   if(!val('f_name'))return fail('اكتب اسم الشقة');
-  const o={name:val('f_name'),price:num(val('f_price')),priceType:$('f_pt').value,expenses:num(val('f_exp'))};
-  if(id)Object.assign(S.apartments.find(x=>x.id===id),o);else S.apartments.push({id:uid(),...o,bookings:[]});
+  const own=document.querySelector('#ownSeg button.on');
+  const ownType=own&&own.dataset.t==='sublease'?'sublease':'owned';
+  if(ownType==='sublease'&&(val('f_lease')===''||isNaN(parseFloat(en(val('f_lease'))))))return fail('اكتب قيمة الإيجار للمالك');
+  const o={name:val('f_name'),price:num(val('f_price')),priceType:$('f_pt').value,expenses:num(val('f_exp')),ownType,leaseAmount:ownType==='sublease'?num(val('f_lease')):($('f_lease')?num(val('f_lease')):0),leasePeriod:ownType==='sublease'&&$('f_lp')?$('f_lp').value:'month'};
+  if(id)Object.assign(S.apartments.find(x=>x.id===id),o);else S.apartments.push({id:uid(),...o,bookings:[],costs:[]});
   save();closeModal();render();
 }
 function delApt(id){if(confirm('هتحذف الشقة وكل حجوزاتها. متأكد؟')){S.apartments=S.apartments.filter(x=>x.id!==id);save();render()}}
 
 /* bookings */
+let _rt='day';
 function bkForm(aid,bid){
   const a=S.apartments.find(x=>x.id===aid),b=(a.bookings||[]).find(x=>x.id===bid)||{};
+  _rt=(b.rentType==='month'||(!b.rentType&&a.priceType==='month'))?'month':'day';
+  const units=b.units!=null&&b.units!==''?b.units:(_rt==='day'&&b.in&&b.out?nightsOf(b):_rt==='month'?1:'');
+  const rate=b.rate!=null&&b.rate!==''?b.rate:(!bid&&a.price?a.price:'');
   openModal(`<h2>${bid?'تعديل حجز':'حجز جديد'} - ${esc(a.name)}</h2>
   <label>اسم الضيف *</label><input id="f_guest" dir="auto" value="${esc(b.guest)}">
-  <div class="two"><div><label>تاريخ الدخول *</label><input id="f_in" type="date" lang="en" dir="ltr" value="${esc(b.in)}"></div>
-  <div><label>تاريخ الخروج *</label><input id="f_out" type="date" lang="en" dir="ltr" value="${esc(b.out)}"></div></div>
-  <div class="two"><div><label>المدفوع (ج.م)</label><input id="f_paid" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(b.paid)}"></div>
-  <div><label>المتبقي (ج.م)</label><input id="f_due" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(b.due)}"></div></div>`+foot(`saveBk('${aid}','${bid||''}')`));
+  <div class="two"><div><label>تاريخ الدخول *</label><input id="f_in" type="date" lang="en" dir="ltr" value="${esc(b.in)}" oninput="onBkDates()" onchange="onBkDates()"></div>
+  <div><label>تاريخ الخروج *</label><input id="f_out" type="date" lang="en" dir="ltr" value="${esc(b.out)}" oninput="onBkDates()" onchange="onBkDates()"></div></div>
+  <label>نوع الإيجار</label>
+  <div class="seg" id="rentSeg"><button type="button" data-t="day" class="${_rt==='day'?'on':''}" onclick="setRentType('day')">إيجار باليوم</button>
+  <button type="button" data-t="month" class="${_rt==='month'?'on':''}" onclick="setRentType('month')">إيجار بالشهر</button></div>
+  <div class="two"><div><label id="f_rate_lbl">${_rt==='day'?'قيمة الإيجار في اليوم (ج.م)':'قيمة الإيجار الشهري (ج.م)'}</label>
+  <input id="f_rate" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this);updRentTot()" value="${esc(rate)}"></div>
+  <div><label id="f_units_lbl">${_rt==='day'?'عدد الأيام':'عدد الشهور'}</label>
+  <input id="f_units" type="text" inputmode="numeric" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this);this.dataset.manual='1';updRentTot()" value="${esc(units)}"></div></div>
+  <div class="tot" id="rentTot"></div>
+  <div class="two"><div><label>المدفوع (ج.م)</label><input id="f_paid" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this);updRentTot()" value="${esc(b.paid)}"></div>
+  <div><label>المتبقي (ج.م)</label><input id="f_due" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this);this.dataset.manual='1'" value="${esc(b.due)}"></div></div>`+foot(`saveBk('${aid}','${bid||''}')`));
+  updRentTot();
+}
+function setRentType(t){
+  _rt=t;
+  document.querySelectorAll('#rentSeg button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  $('f_rate_lbl').textContent=t==='day'?'قيمة الإيجار في اليوم (ج.م)':'قيمة الإيجار الشهري (ج.م)';
+  $('f_units_lbl').textContent=t==='day'?'عدد الأيام':'عدد الشهور';
+  if(t==='day'){const n=nightsOf({in:$('f_in').value,out:$('f_out').value});if(n>0&&$('f_units').dataset.manual!=='1')$('f_units').value=n}
+  else if(!$('f_units').value||$('f_units').dataset.manual!=='1')$('f_units').value='1';
+  if($('f_due'))$('f_due').dataset.manual='';
+  updRentTot();
+}
+function onBkDates(){
+  if(_rt==='day'){const n=nightsOf({in:$('f_in').value,out:$('f_out').value});if(n>0){$('f_units').value=n;$('f_units').dataset.manual=''}}
+  if($('f_due'))$('f_due').dataset.manual='';
+  updRentTot();
+}
+function updRentTot(){
+  if(!$('rentTot'))return;
+  const rate=num($('f_rate').value),units=num($('f_units').value),tot=rate*units;
+  $('rentTot').innerHTML=`<div class="row big"><span>إجمالي الإيجار</span><b>${money(tot)}</b></div>`;
+  if($('f_due')&&$('f_due').dataset.manual!=='1'&&rate>0&&units>0){
+    const paid=num($('f_paid').value);
+    $('f_due').value=String(Math.round((tot-paid)*100)/100);
+  }
 }
 function saveBk(aid,bid){
   if(!val('f_guest'))return fail('اكتب اسم الضيف');
   if(!$('f_in').value||!$('f_out').value)return fail('اختار تاريخ الدخول والخروج');
   if($('f_out').value<=$('f_in').value)return fail('تاريخ الخروج لازم يكون بعد الدخول');
+  const rate=num(val('f_rate')),units=num(val('f_units'));
+  const existing=bid?(S.apartments.find(x=>x.id===aid).bookings||[]).find(x=>x.id===bid):null;
+  const hasRent=rate>0&&units>0;
+  if(!hasRent&&!(existing&&!existing.rentType))return fail(_rt==='day'?'اكتب قيمة الإيجار في اليوم وعدد الأيام':'اكتب قيمة الإيجار الشهري وعدد الشهور');
   const a=S.apartments.find(x=>x.id===aid);a.bookings=a.bookings||[];
   const o={guest:val('f_guest'),in:$('f_in').value,out:$('f_out').value,paid:num(val('f_paid')),due:num(val('f_due'))};
+  if(hasRent){o.rentType=_rt;o.rate=rate;o.units=units;o.total=Math.round(rate*units*100)/100}
   if(bid)Object.assign(a.bookings.find(x=>x.id===bid),o);else a.bookings.push({id:uid(),...o});
   save();closeModal();render();
 }
 function delBk(aid,bid){if(confirm('تحذف الحجز ده؟')){const a=S.apartments.find(x=>x.id===aid);a.bookings=a.bookings.filter(x=>x.id!==bid);save();render()}}
+
+/* apartment costs (dated expenses charged to one apartment) */
+function costForm(aid,eid){
+  const a=S.apartments.find(x=>x.id===aid),e=(a.costs||[]).find(x=>x.id===eid)||{};
+  const opts=S.apartments.map(x=>`<option value="${x.id}" ${x.id===aid?'selected':''}>${esc(x.name)}</option>`).join('');
+  openModal(`<h2>${eid?'تعديل منصرف':'منصرف جديد'} - ${esc(a.name)}</h2>
+  <div class="sub">المنصرف بيتسجّل على الشقة، وهيتحسب في صافي ربح الشهر حسب تاريخه.</div>
+  <label>الشقة *</label><select id="f_apt">${opts}</select>
+  <label>خانة المنصرف *</label><input id="f_desc" dir="auto" value="${esc(e.desc)}" placeholder="مثال: كهرباء، صيانة، تنظيف">
+  <label>المبلغ (ج.م) *</label><input id="f_amt" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(e.amount)}">
+  <label>تاريخ المنصرف *</label><input id="f_date" type="date" lang="en" dir="ltr" value="${esc(e.date||(eid?'':today()))}">`+foot(`saveCost('${aid}','${eid||''}')`));
+}
+function saveCost(aid,eid){
+  if(!val('f_desc'))return fail('اكتب بيان المنصرف');
+  if(val('f_amt')===''||isNaN(parseFloat(en(val('f_amt')))))return fail('اكتب المبلغ');
+  if(!$('f_date').value)return fail('اختار تاريخ المنصرف');
+  const destId=$('f_apt')?$('f_apt').value:aid;
+  const o={desc:val('f_desc'),amount:num(val('f_amt')),date:$('f_date').value};
+  const src=S.apartments.find(x=>x.id===aid);src.costs=src.costs||[];
+  const dest=S.apartments.find(x=>x.id===destId);dest.costs=dest.costs||[];
+  if(eid){
+    const item=src.costs.find(x=>x.id===eid);Object.assign(item,o);
+    if(destId!==aid){src.costs=src.costs.filter(x=>x.id!==eid);dest.costs.push(item)}
+  }else dest.costs.push({id:uid(),...o});
+  save();closeModal();render();
+}
+function delCost(aid,eid){if(confirm('تحذف المنصرف ده؟')){const a=S.apartments.find(x=>x.id===aid);a.costs=a.costs.filter(x=>x.id!==eid);save();render()}}
 
 /* backup */
 function exportData(){
@@ -494,25 +637,75 @@ function stmtProject(p,o){
 }
 function stmtApt(a,o){
   const bks=(a.bookings||[]).slice().sort((x,y)=>(x.in||'').localeCompare(y.in||'')),paid=bks.reduce((t,b)=>t+num(b.paid),0),due=bks.reduce((t,b)=>t+num(b.due),0);
-  const inc=income(a),net=inc-num(a.expenses);
+  const inc=income(a),cstm=costsMonth(a),net=inc-cstm;
+  const costs=(a.costs||[]).slice().sort((x,y)=>(x.date||'').localeCompare(y.date||''));
+  const monthCosts=costs.filter(e=>inThisMonth(e.date));
+  const costAll=costs.reduce((t,e)=>t+num(e.amount),0);
+  const bkRows=bks.map((b,i)=>`<tr><td class="c">${i+1}</td><td>${esc(b.guest)}${rentNote(b)?`<div style="font-weight:400;font-size:11px;color:#4b5563">${rentNote(b)} — ${money(bkTotal(b))}</div>`:''}</td><td class="c">${fdate(b.in)}</td><td class="c">${fdate(b.out)}</td><td class="n">${money(num(b.paid))}</td><td class="n">${money(num(b.due))}</td></tr>`).join('');
+  const lease=leaseMonthly(a);
+  const costRows=costs.map((e,i)=>`<tr><td class="c">${i+1}</td><td>${esc(e.desc||'—')}</td><td class="c">${e.date?fdate(e.date):''}</td><td class="n">${money(num(e.amount))}</td></tr>`).join('')
+    +(lease?`<tr><td class="c">•</td><td>إيجار المالك (قاعدة شهرية)${a.leasePeriod==='year'?' — من '+money(num(a.leaseAmount))+' سنوي':''}</td><td class="c">شهري</td><td class="n">${money(lease)}</td></tr>`:'')
+    +(num(a.expenses)?`<tr><td class="c">•</td><td>مصاريف شهرية ثابتة (بتتحسب كل شهر)</td><td class="c">شهري</td><td class="n">${money(num(a.expenses))}</td></tr>`:'');
+  const pnlRows=`<tr><td>الإيراد المحصّل هذا الشهر</td><td class="n">${money(inc)}</td></tr>`
+    +(lease?`<tr><td>إيجار المالك (قاعدة شهرية)</td><td class="n">${money(lease)}</td></tr>`:'')
+    +(num(a.expenses)?`<tr><td>مصاريف شهرية ثابتة</td><td class="n">${money(num(a.expenses))}</td></tr>`:'')
+    +monthCosts.map(e=>`<tr><td>${esc(e.desc||'منصرف')} (${e.date?fdate(e.date):''})</td><td class="n">${money(num(e.amount))}</td></tr>`).join('')
+    +`<tr><td>إجمالي المنصرفات هذا الشهر</td><td class="n">${money(cstm)}</td></tr>`;
   return`${docHead('كشف حساب شقة')}
-  <div class="pv-meta"><div>الشقة: <b>${esc(a.name)}</b></div><div>السعر: <b>${money(num(a.price))} / ${a.priceType==='month'?'شهر':'ليلة'}</b></div><div>التاريخ: <b>${fdate(today())}</b></div></div>
+  <div class="pv-meta"><div>الشقة: <b>${esc(a.name)}</b></div><div>الملكية: <b>${ownLabel(a)}</b></div><div>السعر: <b>${money(num(a.price))} / ${a.priceType==='month'?'شهر':'ليلة'}</b></div><div>التاريخ: <b>${fdate(today())}</b></div></div>
   <div class="pv-sum"><div><small>عدد الحجوزات</small><b>${bks.length}</b></div><div><small>إجمالي المدفوع</small><b>${money(paid)}</b></div><div class="bal"><small>إجمالي المتبقي</small><b style="color:${due>0?'#dc2626':'#15803d'}">${money(due)}</b></div></div>
   <h2>الحجوزات</h2>
-  ${bks.length?tbl('<th>#</th><th>الضيف</th><th>الدخول</th><th>الخروج</th><th class="n">المدفوع</th><th class="n">المتبقي</th>',bks.map((b,i)=>`<tr><td class="c">${i+1}</td><td>${esc(b.guest)}</td><td class="c">${fdate(b.in)}</td><td class="c">${fdate(b.out)}</td><td class="n">${money(num(b.paid))}</td><td class="n">${money(num(b.due))}</td></tr>`).join(''),`<tr class="tt"><td colspan="4">الإجمالي</td><td class="n">${money(paid)}</td><td class="n">${money(due)}</td></tr>`):'<div>لا توجد حجوزات.</div>'}
-  ${o.costs?`<h2>مصاريف وصافي الربح (الشهر الحالي)</h2>${tbl('<th>البيان</th><th class="n">المبلغ</th>',`<tr><td>الإيراد المحصّل هذا الشهر</td><td class="n">${money(inc)}</td></tr><tr><td>المصاريف الشهرية</td><td class="n">${money(num(a.expenses))}</td></tr>`,`<tr class="tt"><td>صافي الربح</td><td class="n">${money(net)}</td></tr>`)}`:''}
+  ${bks.length?tbl('<th>#</th><th>الضيف / نوع الإيجار</th><th>الدخول</th><th>الخروج</th><th class="n">المدفوع</th><th class="n">المتبقي</th>',bkRows,`<tr class="tt"><td colspan="4">الإجمالي</td><td class="n">${money(paid)}</td><td class="n">${money(due)}</td></tr>`):'<div>لا توجد حجوزات.</div>'}
+  <h2>المنصرفات</h2>
+  ${costs.length||num(a.expenses)||lease?tbl('<th>#</th><th>البيان</th><th>التاريخ</th><th class="n">المبلغ</th>',costRows,`<tr class="tt"><td colspan="3">إجمالي المنصرفات المسجّلة</td><td class="n">${money(costAll+num(a.expenses)+lease)}</td></tr>`):'<div>لا توجد منصرفات.</div>'}
+  ${o.costs?`<h2>مصاريف وصافي الربح (الشهر الحالي)</h2>${tbl('<th>البيان</th><th class="n">المبلغ</th>',pnlRows,`<tr class="tt"><td>صافي الربح</td><td class="n">${money(net)}</td></tr>`)}`:''}
   <div class="pv-foot">HORIZON HOMES — كشف حساب بتاريخ ${fdate(today())}</div>`;
 }
 let pvTitle='';
+function openPrint(title,html,nav){
+  closeModal();pvTitle=title;
+  $('printView').innerHTML=`<div class="pv-bar"><button class="btn" id="pvPrint" onclick="doPrint()">🖨️ طباعة / حفظ PDF</button><button class="btn sec" id="pvClose" onclick="closeStatement()">إغلاق</button></div>
+   ${nav||''}
+   <div class="pv-hint">في نافذة الطباعة اختار «Save as PDF» / «حفظ كـ PDF». الكشف بيتجهّز على جهازك بس.</div>
+   <div class="pv-doc" id="pvDoc"><div class="pv-wm" aria-hidden="true"><img src="${getLogo()}" alt=""></div><div class="pv-body">${html}</div></div>`;
+  $('printView').classList.add('on');document.body.classList.add('pv-on');$('printView').scrollTop=0;
+}
 function showStatement(kind,id){
   let html,name;
   if(kind==='P'){const p=S.projects.find(x=>x.id===id);name=p.name;html=stmtProject(p,{hidePetty:chkv('o_petty'),showEmpty:chkv('o_empty')})}
   else{const a=S.apartments.find(x=>x.id===id);name=a.name;html=stmtApt(a,{costs:chkv('o_costs')})}
-  closeModal();pvTitle='كشف حساب - '+name;
-  $('printView').innerHTML=`<div class="pv-bar"><button class="btn" id="pvPrint" onclick="doPrint()">🖨️ طباعة / حفظ PDF</button><button class="btn sec" id="pvClose" onclick="closeStatement()">إغلاق</button></div>
-   <div class="pv-hint">في نافذة الطباعة اختار «Save as PDF» / «حفظ كـ PDF». الكشف بيتجهّز على جهازك بس.</div>
-   <div class="pv-doc" id="pvDoc">${html}</div>`;
-  $('printView').classList.add('on');document.body.classList.add('pv-on');$('printView').scrollTop=0;
+  openPrint('كشف حساب - '+name,html);
+}
+function stmtPnl(ym){
+  const rows=S.apartments.map(a=>{
+    const inc=incomeIn(a,ym),exp=costsIn(a,ym),net=inc-exp,lease=leaseMonthly(a),dated=costsDatedIn(a,ym);
+    return{a,inc,exp,net,lease,dated,legacy:num(a.expenses)};
+  });
+  const tInc=rows.reduce((t,r)=>t+r.inc,0),tExp=rows.reduce((t,r)=>t+r.exp,0),tNet=tInc-tExp;
+  const tblRows=rows.map((r,i)=>`<tr><td class="c">${i+1}</td><td>${esc(r.a.name)}<div style="font-weight:400;font-size:11px;color:#4b5563">${ownLabel(r.a)}</div></td><td class="n">${money(r.inc)}</td><td class="n">${money(r.exp)}</td><td class="n" style="color:${r.net<0?'#dc2626':'#15803d'}">${money(r.net)}</td></tr>`).join('');
+  const details=rows.map(r=>{
+    const bits=[];
+    if(r.lease)bits.push(`<tr><td>إيجار المالك (قاعدة شهرية)${r.a.leasePeriod==='year'?' — من '+money(num(r.a.leaseAmount))+' سنوي':''}</td><td class="n">${money(r.lease)}</td></tr>`);
+    if(r.legacy)bits.push(`<tr><td>مصاريف شهرية ثابتة</td><td class="n">${money(r.legacy)}</td></tr>`);
+    (r.a.costs||[]).filter(e=>inMonth(e.date,ym)).sort((x,y)=>(x.date||'').localeCompare(y.date||'')).forEach(e=>bits.push(`<tr><td>${esc(e.desc||'منصرف')} (${e.date?fdate(e.date):''})</td><td class="n">${money(num(e.amount))}</td></tr>`));
+    if(!bits.length)bits.push(`<tr><td colspan="2">مفيش منصرفات في الشهر ده</td></tr>`);
+    bits.unshift(`<tr><td>إيراد الإيجار المحصّل</td><td class="n">${money(r.inc)}</td></tr>`);
+    return`<h2>${esc(r.a.name)} — ${ownLabel(r.a)}</h2>${tbl('<th>البيان</th><th class="n">المبلغ</th>',bits.join(''),`<tr class="tt"><td>صافي ${r.net<0?'الخسارة':'الربح'}</td><td class="n">${money(r.net)}</td></tr>`)}`;
+  }).join('');
+  return`${docHead('تقرير الربح والخسارة')}
+  <div class="pv-meta"><div>الشهر: <b>${monthLabel(ym)}</b></div><div>عدد الشقق: <b>${rows.length}</b></div><div>التاريخ: <b>${fdate(today())}</b></div></div>
+  <div class="pv-sum"><div><small>إجمالي إيراد الإيجار</small><b>${money(tInc)}</b></div><div><small>إجمالي المنصرفات</small><b>${money(tExp)}</b></div><div class="bal"><small>صافي ${tNet<0?'الخسارة':'الربح'}</small><b style="color:${tNet<0?'#dc2626':'#15803d'}">${money(tNet)}</b></div></div>
+  <h2>ملخص الشقق</h2>
+  ${rows.length?tbl('<th>#</th><th>الشقة</th><th class="n">إيراد الإيجار</th><th class="n">المنصرفات</th><th class="n">الصافي</th>',tblRows,`<tr class="tt"><td colspan="2">الإجمالي</td><td class="n">${money(tInc)}</td><td class="n">${money(tExp)}</td><td class="n">${money(tNet)}</td></tr>`):'<div>لسه مفيش شقق.</div>'}
+  ${details}
+  <div class="pv-foot">HORIZON HOMES — تقرير الربح والخسارة عن ${monthLabel(ym)} — بتاريخ ${fdate(today())}</div>`;
+}
+function showPnl(ym){
+  ym=ym||($('pnlYm')&&$('pnlYm').value)||curYm();
+  const nav=`<div class="pv-nav"><button class="btn sec sm" type="button" onclick="showPnl(shiftYm('${ym}',-1))">الشهر السابق</button>
+   <input id="pnlYm" type="month" lang="en" dir="ltr" value="${esc(ym)}" onchange="showPnl(this.value)">
+   <button class="btn sec sm" type="button" onclick="showPnl(shiftYm('${ym}',1))">الشهر التالي</button></div>`;
+  openPrint('تقرير الربح والخسارة - '+monthLabel(ym),stmtPnl(ym),nav);
 }
 let _oldTitle='';
 function doPrint(){_oldTitle=document.title;document.title=pvTitle;window.print();setTimeout(()=>{document.title=_oldTitle},1500)}
