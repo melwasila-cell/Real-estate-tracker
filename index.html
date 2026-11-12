@@ -18,7 +18,7 @@ header h1{margin:0 0 10px;font-size:20px}
 .sum small{display:block;font-size:12px;opacity:.9}
 .sum b{font-size:17px}
 .tabs{display:flex;background:#fff;border-bottom:1px solid var(--bd)}
-.tabs button{flex:1;padding:15px 6px;font:inherit;font-weight:700;border:0;background:none;color:var(--mut);border-bottom:4px solid transparent;min-height:54px}
+.tabs button{flex:1;padding:12px 4px;font:inherit;font-weight:700;font-size:13px;line-height:1.3;border:0;background:none;color:var(--mut);border-bottom:4px solid transparent;min-height:54px}
 .tabs button.on{color:var(--pri);border-color:var(--pri)}
 main{padding:14px;max-width:720px;margin:auto}
 .card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -74,6 +74,16 @@ details.it .in{padding:0 14px 14px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .seg button{font:inherit;font-weight:700;border:1.5px solid var(--bd);border-radius:12px;padding:12px 8px;min-height:50px;background:#fff;color:var(--tx)}
 .seg button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.card.hl{box-shadow:0 0 0 3px var(--pri)}
+.tr{border-top:1px solid var(--bd);padding:10px 0}
+.tr .t{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.tr .amt{font-weight:800;white-space:nowrap}
+.tr .amt.in{color:var(--grn)}
+.tr .amt.out{color:var(--red)}
+.tr .src{font-size:13px;color:var(--mut);margin:2px 0}
+.flt{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+.flt>div{flex:1;min-width:120px}
+
 
 
 header .brand{display:flex;align-items:center;gap:10px;margin-bottom:10px}
@@ -137,8 +147,9 @@ header .brand small{display:block;font-size:12px;letter-spacing:2px;opacity:.9;d
   <div class="sum" id="sum"></div>
 </header>
 <div class="tabs">
-  <button id="tabP" class="on" onclick="setTab('P')">مشاريع التشطيب</button>
+  <button id="tabP" class="on" onclick="setTab('P')">شقق التشطيب</button>
   <button id="tabA" onclick="setTab('A')">الشقق المفروشة</button>
+  <button id="tabG" onclick="setTab('G')">الحسابات العامة</button>
 </div>
 <main id="main"></main>
 <button class="btn fab" id="fab"></button>
@@ -155,7 +166,7 @@ const en=s=>String(s==null?'':s).replace(/[٠-٩]/g,d=>AR.indexOf(d)).replace(/[
 const num=v=>{const n=parseFloat(en(v));return isNaN(n)?0:n};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const STAGES=['عظم','كهرباء وسباكة','محارة','سيراميك','نجارة ودهانات','تسليم'];
-let S, tab=localStorage.getItem('reTab')==='A'?'A':'P';
+let S, tab=(()=>{const t=localStorage.getItem('reTab');return t==='A'||t==='G'?t:'P'})();
 const DEFAULT_ITEMS=['تكسير ونقل مخلفات','المبانى','اعمال محاره','اعمال سراميك','دهانات','الخشب والنجاره','ورق حائط','اعمال الكهرباء','الاعمال الصحيه 1','الاعمال الصحيه 2','جبس بورد','الرخام','مواسير تكييف نحاس','سيكوريت زجاج','سمارت هوم','المونتال'];
 const defItems=()=>DEFAULT_ITEMS.map(n=>({id:uid(),name:n,entries:[]}));
 function normProj(p){ // migrates old projects (single "spent" number) to the new ledger model
@@ -174,8 +185,9 @@ function normApt(a){
   a.leaseAmount=num(a.leaseAmount);
   a.leasePeriod=a.leasePeriod==='year'?'year':'month';
   return a}
-function normalize(d){d.projects.forEach(normProj);d.apartments.forEach(normApt);return d}
-function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&Array.isArray(d.projects)&&Array.isArray(d.apartments)){const n=normalize(d);return n}}catch(e){}return{projects:[],apartments:[]}}
+function normLedger(e){e.id=e.id||uid();e.amount=num(e.amount);e.type=e.type==='expense'||e.type==='other'?e.type:'income';e.dir=e.type==='income'?'in':e.type==='expense'?'out':(e.dir==='out'?'out':'in');e.date=e.date||'';e.desc=e.desc||'';e.category=e.category||'';e.notes=e.notes||'';return e}
+function normalize(d){d.projects=Array.isArray(d.projects)?d.projects:[];d.apartments=Array.isArray(d.apartments)?d.apartments:[];d.projects.forEach(normProj);d.apartments.forEach(normApt);d.ledger=Array.isArray(d.ledger)?d.ledger:[];d.ledger.forEach(normLedger);return d}
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&Array.isArray(d.projects)&&Array.isArray(d.apartments)){return normalize(d)}}catch(e){}return{projects:[],apartments:[],ledger:[]}}
 function save(){localStorage.setItem(KEY,JSON.stringify(S))}
 S=load();
 const $=id=>document.getElementById(id);
@@ -223,28 +235,135 @@ function nightsOf(b){return(!b.in||!b.out)?0:Math.max(0,dayNum(b.out)-dayNum(b.i
 function bkTotal(b){if(b.rentType==='day'||b.rentType==='month')return(b.total!=null&&b.total!=='')?num(b.total):num(b.rate)*num(b.units);return num(b.paid)+num(b.due)}
 function rentNote(b){if(b.rentType==='day')return 'إيجار باليوم: '+money(num(b.rate))+' × '+num(b.units)+' يوم';if(b.rentType==='month')return 'إيجار بالشهر: '+money(num(b.rate))+' × '+num(b.units)+' شهر';return ''}
 
+/* ---- general accounts / treasury (derived auto + stored manual) ---- */
+let GF={mode:'month',ym:curYm(),from:'',to:''};
+function tTypeLabel(t){return t==='expense'?'منصرف':t==='other'?'أخرى':'إيراد'}
+function monthsBetween(a,b){const o=[];if(!a||!b||a>b)return o;let x=a;while(x<=b){o.push(x);x=shiftYm(x,1);if(o.length>240)break}return o}
+function collectDates(){
+  const d=[];
+  (S.apartments||[]).forEach(a=>{(a.bookings||[]).forEach(b=>{if(b.in)d.push(b.in);if(b.out)d.push(b.out)});(a.costs||[]).forEach(e=>{if(e.date)d.push(e.date)})});
+  (S.projects||[]).forEach(p=>{[...p.received||[],...p.petty||[],...(p.items||[]).flatMap(i=>i.entries||[])].forEach(e=>{if(e.date)d.push(e.date)})});
+  (S.ledger||[]).forEach(e=>{if(e.date)d.push(e.date)});
+  return d;
+}
+function earliestYm(){const d=collectDates();if(!d.length)return curYm();d.sort();return d[0].slice(0,7)}
+function recurringYms(){
+  let hi=curYm();
+  if(GF.mode==='month'&&GF.ym>hi)hi=GF.ym;
+  if(GF.mode==='range'&&GF.to&&GF.to.slice(0,7)>hi)hi=GF.to.slice(0,7);
+  return monthsBetween(earliestYm(),hi);
+}
+function tEnt(o){return Object.assign({category:'',notes:'',auto:true,source:null,date:'',desc:'',amount:0,type:'income',kind:'in'},o)}
+function treasuryAll(){
+  const out=[];
+  (S.apartments||[]).forEach(a=>{
+    const src={kind:'apt',id:a.id,name:a.name};
+    (a.bookings||[]).forEach(b=>{
+      if(num(b.paid)<=0)return;
+      const extra=rentNote(b); const dates=(b.in||b.out)?(fdate(b.in)+' ← '+fdate(b.out)):'';
+      out.push(tEnt({id:'bk:'+a.id+':'+b.id,date:b.in||'',desc:'إيجار مستلم — '+(b.guest||'ضيف')+(dates?' ('+dates+')':''),amount:num(b.paid),type:'income',kind:'in',category:'إيجار',notes:extra,source:src}));
+    });
+    (a.costs||[]).forEach(e=>{
+      if(num(e.amount)<=0)return;
+      out.push(tEnt({id:'cost:'+a.id+':'+e.id,date:e.date||'',desc:e.desc||'منصرف',amount:num(e.amount),type:'expense',kind:'out',category:'منصرف شقة',source:src}));
+    });
+    const lease=leaseMonthly(a),fix=num(a.expenses);
+    recurringYms().forEach(ym=>{
+      const d=ym+'-01';
+      if(lease>0)out.push(tEnt({id:'lease:'+a.id+':'+ym,date:d,desc:'إيجار المالك (قاعدة شهرية) — '+monthLabel(ym)+(a.leasePeriod==='year'?' — من '+money(num(a.leaseAmount))+' سنوي':''),amount:lease,type:'expense',kind:'out',category:'إيجار مالك',notes:'قيد تلقائي في أول الشهر. لو المبلغ لسه ماتدفعش تقدر تسجّل قيد عكسي يدوي.',source:src}));
+      if(fix>0)out.push(tEnt({id:'fixed:'+a.id+':'+ym,date:d,desc:'مصاريف شهرية ثابتة — '+monthLabel(ym),amount:fix,type:'expense',kind:'out',category:'مصاريف ثابتة',notes:'قيد تلقائي من المصاريف الشهرية الثابتة للشقة.',source:src}));
+    });
+  });
+  (S.projects||[]).forEach(p=>{
+    const src={kind:'proj',id:p.id,name:p.name};
+    (p.received||[]).forEach(e=>{
+      if(num(e.amount)<=0)return;
+      out.push(tEnt({id:'prec:'+p.id+':'+e.id,date:e.date||'',desc:(e.note||'مبلغ وارد')+' — مشروع '+p.name,amount:num(e.amount),type:'income',kind:'in',category:'وارد مشروع',source:src}));
+    });
+    (p.items||[]).forEach(it=>{(it.entries||[]).forEach(e=>{
+      if(num(e.amount)<=0)return;
+      out.push(tEnt({id:'pitem:'+p.id+':'+it.id+':'+e.id,date:e.date||'',desc:(it.name||'بند')+(e.desc?' — '+e.desc:'')+' — مشروع '+p.name,amount:num(e.amount),type:'expense',kind:'out',category:'مصروف مشروع',source:src}));
+    })});
+    (p.petty||[]).forEach(e=>{
+      if(num(e.amount)<=0)return;
+      out.push(tEnt({id:'ppetty:'+p.id+':'+e.id,date:e.date||'',desc:(e.desc||'نثرية')+' — مشروع '+p.name,amount:num(e.amount),type:'expense',kind:'out',category:'نثريات',source:src}));
+    });
+    if(num(p.legacySpent)>0)out.push(tEnt({id:'plegacy:'+p.id,date:'',desc:'مصروفات سابقة (من النسخة القديمة) — مشروع '+p.name,amount:num(p.legacySpent),type:'expense',kind:'out',category:'مصروف مشروع',notes:'من غير تاريخ محدد، بيظهر في كشف «الكل».',source:src}));
+  });
+  (S.ledger||[]).forEach(e=>{
+    const kind=e.type==='income'||(e.type==='other'&&e.dir!=='out')?'in':'out';
+    out.push(tEnt({id:'man:'+e.id,date:e.date||'',desc:e.desc||'قيد',amount:num(e.amount),type:e.type,kind,category:e.category||'',notes:e.notes||'',auto:false,source:null,manId:e.id}));
+  });
+  return out;
+}
+function tsign(e){return e.kind==='in'?num(e.amount):-num(e.amount)}
+function tsort(a,b){const da=a.date||'0000-00-00',db=b.date||'0000-00-00';if(da!==db)return da<db?-1:1;if(a.kind!==b.kind)return a.kind==='in'?-1:1;return String(a.id).localeCompare(String(b.id))}
+function inPeriod(e,gf){
+  if(gf.mode==='all')return true;
+  if(!e.date)return false;
+  if(gf.mode==='month')return inMonth(e.date,gf.ym);
+  const from=gf.from||'0000-01-01',to=gf.to||'9999-12-31';
+  return e.date>=from&&e.date<=to;
+}
+function beforePeriod(e,gf){
+  if(gf.mode==='all')return false;
+  if(!e.date)return true;
+  if(gf.mode==='month'){const[a]=monthBounds(gf.ym);return dayNum(e.date)<a}
+  return e.date<(gf.from||'0000-01-01');
+}
+function treasuryView(gf){
+  gf=gf||GF;
+  const all=treasuryAll().sort(tsort);
+  const opening=all.filter(e=>beforePeriod(e,gf)).reduce((t,e)=>t+tsign(e),0);
+  const rows=all.filter(e=>inPeriod(e,gf));
+  let run=opening;
+  const listed=rows.map(e=>{run+=tsign(e);return Object.assign({},e,{bal:run})});
+  const tin=rows.filter(e=>e.kind==='in').reduce((t,e)=>t+num(e.amount),0);
+  const tout=rows.filter(e=>e.kind==='out').reduce((t,e)=>t+num(e.amount),0);
+  const byType={income:0,expense:0,otherIn:0,otherOut:0};
+  rows.forEach(e=>{if(e.type==='income')byType.income+=e.amount;else if(e.type==='expense')byType.expense+=e.amount;else if(e.kind==='in')byType.otherIn+=e.amount;else byType.otherOut+=e.amount});
+  const allBal=all.reduce((t,e)=>t+tsign(e),0);
+  return{opening,rows:listed,tin,tout,net:tin-tout,closing:opening+tin-tout,byType,allBal,all};
+}
+function periodLabel(gf){
+  gf=gf||GF;
+  if(gf.mode==='all')return 'كل الفترات';
+  if(gf.mode==='month')return monthLabel(gf.ym);
+  return (gf.from?fdate(gf.from):'…')+' — '+(gf.to?fdate(gf.to):'…');
+}
+
 /* ---- render ---- */
 function render(){
   const P=S.projects,A=S.apartments;
   const tb=P.reduce((t,p)=>t+num(p.budget),0),ts=P.reduce((t,p)=>t+outTotal(p),0),tr=P.reduce((t,p)=>t+recTotal(p),0);
   const bm=A.reduce((t,a)=>t+bookingsMonth(a),0),im=A.reduce((t,a)=>t+income(a),0);
-  $('sum').innerHTML=`<div><small>عدد المشاريع</small><b>${P.length}</b></div>
+  if(tab==='G'){
+    const v=treasuryView();
+    $('sum').innerHTML=`<div><small>رصيد الخزينة</small><b style="color:${v.allBal<0?'var(--red)':'inherit'}">${money(v.allBal)}</b></div>
+     <div><small>وارد الفترة</small><b>${money(v.tin)}</b></div>
+     <div><small>منصرف الفترة</small><b>${money(v.tout)}</b></div>
+     <div><small>صافي الفترة</small><b style="color:${v.net<0?'var(--red)':'var(--grn)'}">${money(v.net)}</b></div>
+     <div><small>الفترة</small><b>${periodLabel()}</b></div>`;
+  }else $('sum').innerHTML=`<div><small>عدد المشاريع</small><b>${P.length}</b></div>
    <div><small>حجوزات الشهر ده</small><b>${bm}</b></div>
    <div><small>الميزانية / المصروف</small><b>${money(tb)} / ${money(ts)}</b></div>
    <div><small>إجمالي الوارد / الرصيد</small><b>${money(tr)} / ${money(tr-ts)}</b></div>
    <div><small>إيراد الشهر ده</small><b>${money(im)}</b></div>`;
   $('hLogo').src=getLogo();
-  $('tabP').classList.toggle('on',tab==='P');$('tabA').classList.toggle('on',tab==='A');
-  $('fab').textContent=tab==='P'?'＋ إضافة مشروع':'＋ إضافة شقة';
-  $('fab').onclick=()=>tab==='P'?projForm():aptForm();
+  $('tabP').classList.toggle('on',tab==='P');$('tabA').classList.toggle('on',tab==='A');$('tabG').classList.toggle('on',tab==='G');
+  $('fab').textContent=tab==='G'?'＋ قيد جديد':tab==='P'?'＋ إضافة مشروع':'＋ إضافة شقة';
+  $('fab').onclick=()=>tab==='G'?ledgerForm():tab==='P'?projForm():aptForm();
   const cp=curProj();$('fab').style.display=cp?'none':'';
-  $('main').innerHTML=(cp?renderDetail(cp):tab==='P'?renderP():renderA())+`
+  const body=cp?renderDetail(cp):tab==='P'?renderP():tab==='A'?renderA():renderG();
+  $('main').innerHTML=body+`
    <div class="bkp"><button class="btn sec sm" onclick="exportData()">⬇️ تصدير نسخة احتياطية</button>
    <button class="btn sec sm" onclick="$('imp').click()">⬆️ استيراد نسخة</button></div>
    <input type="file" id="imp" accept="application/json,.json" hidden onchange="importData(this)">
    <div class="bkp"><button class="btn sec sm" onclick="$('logoIn').click()">🖼️ تغيير اللوجو</button>${localStorage.getItem(LOGO_KEY)?'<button class="btn sec sm" onclick="resetLogo()">↩️ اللوجو الأصلي</button>':''}</div>
    <input type="file" id="logoIn" accept="image/*" hidden onchange="changeLogo(this)">
    <div class="note">البيانات محفوظة على موبايلك فقط. صدّر نسخة احتياطية من وقت للتاني.</div>`;
+  const aid=(/^#a(.+)$/.exec(location.hash)||[])[1];
+  if(aid){const el=$('apt-'+aid);if(el){el.classList.add('hl');setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'start'}),50)}}
 }
 function renderP(){
   if(!S.projects.length)return`<div class="empty"><div class="ic">🏠</div><p>لسه مفيش مشاريع تشطيب.<br>اضغط «إضافة مشروع» عشان تسجّل أول مشروع.</p></div>`;
@@ -316,7 +435,7 @@ function renderA(){
     const bks=(a.bookings||[]).slice().sort((x,y)=>(y.in||'').localeCompare(x.in||''));
     const costs=(a.costs||[]).slice().sort((x,y)=>(y.date||'').localeCompare(x.date||''));
     const lease=leaseMonthly(a);
-    return`<div class="card"><h3>${esc(a.name)}</h3>
+    return`<div class="card" id="apt-${a.id}"><h3>${esc(a.name)}</h3>
     <div class="sub">${money(num(a.price))} / ${a.priceType==='month'?'شهر':'ليلة'} · <span class="badge ${a.ownType==='sublease'?'amb':''}">${ownLabel(a)}</span></div>
     ${a.ownType==='sublease'?`<div class="sub">إيجار المالك: ${money(lease)} / شهر${a.leasePeriod==='year'?' (من '+money(num(a.leaseAmount))+' سنوي)':''}</div>`:''}
     <div class="row"><span>الإشغال الشهر ده</span><b>${o.pct}% (${o.nights} من ${o.days} يوم)</b></div>
@@ -341,12 +460,109 @@ function renderA(){
     <button class="btn sec sm" onclick="aptForm('${a.id}')">تعديل الشقة</button>
     <button class="btn dng sm" onclick="delApt('${a.id}')">حذف الشقة</button></div></div>`}).join('');
 }
-function setTab(t){tab=t;localStorage.setItem('reTab',t);if(location.hash)location.hash='';else render();window.scrollTo(0,0)}
+function goTab(t,hash){tab=t;localStorage.setItem('reTab',t);if(hash){if(location.hash===hash)render();else location.hash=hash}else if(location.hash)location.hash='';else render();window.scrollTo(0,0)}
+function setTab(t){goTab(t,'')}
+function openSource(kind,id){if(kind==='proj'){tab='P';localStorage.setItem('reTab','P');openProj(id)}else goTab('A','#a'+id)}
 function curProj(){const m=/^#p(.+)$/.exec(location.hash);return m?S.projects.find(p=>p.id===m[1]):null}
 function openProj(id){location.hash='p'+id}
 function goList(){location.hash=''}
 window.addEventListener('hashchange',()=>{render();window.scrollTo(0,0)});
 const openItems=new Set();
+
+function renderG(){
+  const v=treasuryView();
+  const modeBtn=(m,l)=>`<button type="button" class="btn sm ${GF.mode===m?'':'sec'}" onclick="setGMode('${m}')">${l}</button>`;
+  const flt=GF.mode==='month'?`<div class="flt"><div><label>الشهر</label><input id="g_ym" type="month" lang="en" dir="ltr" value="${esc(GF.ym)}" onchange="setGYm(this.value)"></div></div>
+    <div class="acts"><button class="btn sec sm" onclick="setGYm(shiftYm(GF.ym,-1))">الشهر السابق</button><button class="btn sec sm" onclick="setGYm(shiftYm(GF.ym,1))">الشهر التالي</button></div>`
+    :GF.mode==='range'?`<div class="flt"><div><label>من تاريخ</label><input id="g_from" type="date" lang="en" dir="ltr" value="${esc(GF.from)}" onchange="GF.from=this.value;render()"></div>
+    <div><label>إلى تاريخ</label><input id="g_to" type="date" lang="en" dir="ltr" value="${esc(GF.to)}" onchange="GF.to=this.value;render()"></div></div>`
+    :'<div class="sub">عرض كل القيود من أول نشاط متسجل.</div>';
+  const rows=v.rows.length?v.rows.slice().reverse().map(e=>treasuryRow(e)).join(''):'<div class="sub">مفيش قيود في الفترة دي.</div>';
+  const empty=!v.all.length;
+  return`<div class="card"><h3>الخزينة</h3>
+    <div class="sub">كل إيراد أو منصرف من الشقق أو مشاريع التشطيب بيظهر هنا تلقائي، مربوط بالمصدر. القيود اليدوية تتعدل من هنا.</div>
+    <div class="acts" style="margin-top:8px">${modeBtn('month','الشهر')}${modeBtn('range','فترة')}${modeBtn('all','الكل')}</div>
+    ${flt}
+    <div class="tot">
+      ${GF.mode!=='all'?`<div class="row"><span>رصيد أول المدة</span><b>${money(v.opening)}</b></div>`:''}
+      <div class="row"><span>إيراد</span><b>${money(v.byType.income)}</b></div>
+      <div class="row"><span>منصرف</span><b>${money(v.byType.expense)}</b></div>
+      ${(v.byType.otherIn||v.byType.otherOut)?`<div class="row"><span>أخرى (وارد / خارج)</span><b>${money(v.byType.otherIn)} / ${money(v.byType.otherOut)}</b></div>`:''}
+      <div class="row"><span>إجمالي الوارد</span><b>${money(v.tin)}</b></div>
+      <div class="row"><span>إجمالي المنصرف</span><b>${money(v.tout)}</b></div>
+      <div class="row big"><span>رصيد آخر المدة</span><b style="color:${v.closing<0?'var(--red)':'var(--grn)'}">${money(v.closing)}</b></div>
+    </div>
+    <div class="acts"><button class="btn sm" onclick="showTreasuryPdf()">📄 كشف الخزينة PDF</button></div>
+    <div class="note">إيجار المالك (للشقق المؤجرة من الباطن) والمصاريف الشهرية الثابتة بيتنزّلوا تلقائي كمنصرف في أول كل شهر، من أول شهر فيه نشاط. لو الإيجار لسه ماتدفعش، سجّل قيد عكسي يدوي.</div>
+  </div>
+  ${empty?`<div class="empty"><div class="ic">💼</div><p>لسه مفيش قيود في الخزينة.<br>أضف قيد يدوي، أو سجّل إيراد/منصرف على شقة أو مشروع وهيظهر هنا تلقائي.</p></div>`:
+  `<div class="sec-h"><span>القيود (${v.rows.length})</span><span>${periodLabel()}</span></div>
+   <div class="card">${rows}</div>`}`;
+}
+function treasuryRow(e){
+  const typ=tTypeLabel(e.type)+(e.type==='other'?(e.kind==='in'?' · إيداع/وارد':' · سحب/خارج'):'');
+  const src=e.source?`<div class="src">من ${e.source.kind==='proj'?'مشروع':'شقة'} ${esc(e.source.name)} — تلقائي، عدّل من المصدر</div>`:(e.auto?'':(e.category?`<div class="src">${esc(e.category)}</div>`:''));
+  const acts=e.auto&&e.source
+    ?`<div class="acts" style="margin-top:4px"><button class="btn sec sm" onclick="openSource('${e.source.kind}','${e.source.id}')">فتح المصدر</button></div>`
+    :(!e.auto?`<div class="acts" style="margin-top:4px"><button class="btn sec sm" onclick="ledgerForm('${e.manId}')">تعديل</button><button class="btn dng sm" onclick="delLedger('${e.manId}')">حذف</button></div>`:'');
+  return`<div class="tr"><div class="t"><span><span class="badge ${e.kind==='in'?'grn':e.type==='other'?'amb':'red'}">${typ}</span> <span style="color:var(--mut);font-size:13px">${e.date?fdate(e.date):'بدون تاريخ'}</span><div style="font-weight:700;margin-top:4px">${esc(e.desc)}</div>${src}${e.notes&&!e.auto?`<div class="src">${esc(e.notes)}</div>`:e.auto&&e.notes&&e.category==='إيجار مالك'?`<div class="src">${esc(e.notes)}</div>`:''}</span>
+    <span style="text-align:left"><div class="amt ${e.kind}">${e.kind==='in'?'+':'−'} ${money(e.amount)}</div><div class="src">الرصيد: ${money(e.bal)}</div></span></div>${acts}</div>`;
+}
+function setGMode(m){GF.mode=m;if(m==='month'&&!GF.ym)GF.ym=curYm();render()}
+function setGYm(ym){GF.mode='month';GF.ym=ym||curYm();render()}
+
+function ledgerForm(id){
+  const e=(S.ledger||[]).find(x=>x.id===id)||{type:'income',dir:'in',date:today()};
+  const typ=e.type||'income';
+  openModal(`<h2>${id?'تعديل قيد':'قيد جديد'} — الخزينة</h2>
+  <label>نوع القيد</label>
+  <div class="seg" id="ledSeg">
+    <button type="button" data-t="income" class="${typ==='income'?'on':''}" onclick="setLedType('income')">إيراد</button>
+    <button type="button" data-t="expense" class="${typ==='expense'?'on':''}" onclick="setLedType('expense')">منصرف</button>
+    <button type="button" data-t="other" class="${typ==='other'?'on':''}" onclick="setLedType('other')">أخرى</button>
+  </div>
+  <div id="ledDir" style="display:${typ==='other'?'block':'none'}">
+    <label>الاتجاه</label>
+    <select id="f_dir"><option value="in" ${e.dir!=='out'?'selected':''}>وارد للخزينة (إيداع / تحويل داخل)</option><option value="out" ${e.dir==='out'?'selected':''}>خارج من الخزينة (سحب / تحويل خارج)</option></select>
+  </div>
+  <label>البيان *</label><input id="f_desc" dir="auto" value="${esc(e.desc)}" placeholder="مثال: سحب نقدي، تحويل، إيراد متنوع">
+  <label>المبلغ (ج.م) *</label><input id="f_amt" type="text" inputmode="decimal" dir="ltr" lang="en" autocomplete="off" oninput="fixDigits(this)" value="${esc(e.amount)}">
+  <label>التاريخ *</label><input id="f_date" type="date" lang="en" dir="ltr" value="${esc(e.date||today())}">
+  <label>التصنيف (اختياري)</label><input id="f_cat" dir="auto" list="catList" value="${esc(e.category)}" placeholder="مثال: تحويل، سحب، صيانة عامة">
+  <datalist id="catList"><option value="تحويل"><option value="سحب"><option value="إيداع"><option value="صيانة عامة"><option value="فواتير"><option value="أخرى"></datalist>
+  <label>ملاحظات (اختياري)</label><textarea id="f_notes" dir="auto" rows="2">${esc(e.notes)}</textarea>`+foot(`saveLedger('${id||''}')`));
+}
+function setLedType(t){
+  document.querySelectorAll('#ledSeg button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  if($('ledDir'))$('ledDir').style.display=t==='other'?'block':'none';
+}
+function saveLedger(id){
+  const typBtn=document.querySelector('#ledSeg button.on');
+  const type=typBtn&&typBtn.dataset.t?typBtn.dataset.t:'income';
+  if(!val('f_desc'))return fail('اكتب البيان');
+  if(val('f_amt')===''||isNaN(parseFloat(en(val('f_amt'))))||num(val('f_amt'))<=0)return fail('اكتب المبلغ');
+  if(!$('f_date').value)return fail('اختار التاريخ');
+  const dir=type==='income'?'in':type==='expense'?'out':($('f_dir')?$('f_dir').value:'in');
+  const o={desc:val('f_desc'),amount:num(val('f_amt')),date:$('f_date').value,type,dir,category:val('f_cat'),notes:val('f_notes')};
+  S.ledger=S.ledger||[];
+  if(id)Object.assign(S.ledger.find(x=>x.id===id),o);else S.ledger.push({id:uid(),...o});
+  save();closeModal();render();
+}
+function delLedger(id){if(confirm('تحذف القيد اليدوي ده؟')){S.ledger=(S.ledger||[]).filter(x=>x.id!==id);save();render()}}
+
+function showTreasuryPdf(){
+  const v=treasuryView(),pl=periodLabel();
+  const rows=v.rows.map((e,i)=>`<tr><td class="c">${i+1}</td><td class="c">${e.date?fdate(e.date):'—'}</td><td>${esc(e.desc)}${e.source?`<div style="font-weight:400;font-size:11px;color:#4b5563">من ${e.source.kind==='proj'?'مشروع':'شقة'} ${esc(e.source.name)} (تلقائي)</div>`:''}${e.category?`<div style="font-weight:400;font-size:11px;color:#4b5563">${esc(e.category)}</div>`:''}</td><td class="c">${tTypeLabel(e.type)}</td><td class="n">${e.kind==='in'?money(e.amount):''}</td><td class="n">${e.kind==='out'?money(e.amount):''}</td><td class="n">${money(e.bal)}</td></tr>`).join('');
+  const html=`${docHead('كشف الخزينة')}
+  <div class="pv-meta"><div>الفترة: <b>${pl}</b></div><div>التاريخ: <b>${fdate(today())}</b></div></div>
+  <div class="pv-sum"><div><small>رصيد أول المدة</small><b>${money(v.opening)}</b></div><div><small>إجمالي الوارد</small><b>${money(v.tin)}</b></div><div><small>إجمالي المنصرف</small><b>${money(v.tout)}</b></div><div class="bal"><small>رصيد آخر المدة</small><b style="color:${v.closing<0?'#dc2626':'#15803d'}">${money(v.closing)}</b></div></div>
+  <h2>القيود</h2>
+  ${v.rows.length?tbl('<th>#</th><th>التاريخ</th><th>البيان</th><th>النوع</th><th class="n">وارد</th><th class="n">منصرف</th><th class="n">الرصيد</th>',rows,`<tr class="tt"><td colspan="4">الإجمالي</td><td class="n">${money(v.tin)}</td><td class="n">${money(v.tout)}</td><td class="n">${money(v.closing)}</td></tr>`):'<div>لا توجد قيود في الفترة.</div>'}
+  <h2>حسب النوع</h2>
+  ${tbl('<th>النوع</th><th class="n">المبلغ</th>',`<tr><td>إيراد</td><td class="n">${money(v.byType.income)}</td></tr><tr><td>منصرف</td><td class="n">${money(v.byType.expense)}</td></tr><tr><td>أخرى (وارد)</td><td class="n">${money(v.byType.otherIn)}</td></tr><tr><td>أخرى (خارج)</td><td class="n">${money(v.byType.otherOut)}</td></tr>`,`<tr class="tt"><td>رصيد آخر المدة</td><td class="n">${money(v.closing)}</td></tr>`)}
+  <div class="pv-foot">HORIZON HOMES — كشف الخزينة عن ${pl} — بتاريخ ${fdate(today())}<br>القيود التلقائية مستخرجة من الشقق والمشاريع من غير تكرار. إيجار المالك والمصاريف الشهرية الثابتة بتتنزل أول كل شهر.</div>`;
+  openPrint('كشف الخزينة - '+pl,html);
+}
 
 /* ---- modal ---- */
 function openModal(html){$('sheet').innerHTML=html;$('modal').classList.add('show')}
@@ -560,9 +776,10 @@ function importData(inp){
     if(!d||!Array.isArray(d.projects)||!Array.isArray(d.apartments))throw 0;
     pendingImport=normalize(d);
     const newP=d.projects.filter(p=>!S.projects.some(x=>x.id===p.id)).length,newA=d.apartments.filter(a=>!S.apartments.some(x=>x.id===a.id)).length;
+    const led=(d.ledger||[]).length,newL=(d.ledger||[]).filter(e=>!(S.ledger||[]).some(x=>x.id===e.id)).length;
     openModal(`<h2>استيراد ملف</h2>
-     <p>الملف فيه <b>${d.projects.length}</b> مشروع و<b>${d.apartments.length}</b> شقة.</p>
-     <p><b>إضافة للموجود:</b> هيضيف ${newP} مشروع و${newA} شقة جديدة وهيسيب بياناتك الحالية زي ما هي (اللي موجود بنفس الكود مش هيتغيّر).</p>
+     <p>الملف فيه <b>${d.projects.length}</b> مشروع و<b>${d.apartments.length}</b> شقة و<b>${led}</b> قيد يدوي في الخزينة.</p>
+     <p><b>إضافة للموجود:</b> هيضيف ${newP} مشروع و${newA} شقة و${newL} قيد جديد وهيسيب بياناتك الحالية زي ما هي (اللي موجود بنفس الكود مش هيتغيّر).</p>
      <p><b>استبدال الكل:</b> هيمسح البيانات الحالية ويحط الملف مكانها.</p>
      <div class="foot" style="flex-direction:column"><button class="btn" onclick="doImport('merge')">إضافة للموجود</button>
      <button class="btn dng" onclick="doImport('replace')">استبدال كل البيانات</button>
@@ -573,7 +790,7 @@ function importData(inp){
 function doImport(mode){
   const d=pendingImport;if(!d)return;
   if(mode==='replace')S=d;
-  else{d.projects.forEach(p=>{if(!S.projects.some(x=>x.id===p.id))S.projects.push(p)});d.apartments.forEach(a=>{if(!S.apartments.some(x=>x.id===a.id))S.apartments.push(a)})}
+  else{d.projects.forEach(p=>{if(!S.projects.some(x=>x.id===p.id))S.projects.push(p)});d.apartments.forEach(a=>{if(!S.apartments.some(x=>x.id===a.id))S.apartments.push(a)});S.ledger=S.ledger||[];(d.ledger||[]).forEach(e=>{if(!S.ledger.some(x=>x.id===e.id))S.ledger.push(e)})}
   pendingImport=null;save();closeModal();if(location.hash)location.hash='';render();alert('تم الاستيراد ✅');
 }
 /* ---- logo ---- */
